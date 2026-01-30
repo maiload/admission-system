@@ -1,0 +1,31 @@
+server:
+  port: 8010
+
+spring:
+  application:
+    name: queue-gate
+  data:
+    redis:
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:localhost:7001,localhost:7002,localhost:7003}
+
+gate:
+  sync:
+    token-secret: ${SYNC_TOKEN_SECRET:dev-sync-secret-key-change-in-production}
+    window-ms: 5000
+    join-window-before-ms: 2000
+    join-window-after-ms: ${GATE_SYNC_JOIN_WINDOW_AFTER_MS:10000}
+    token-ttl-after-start-ms: ${GATE_SYNC_TOKEN_TTL_AFTER_START_MS:15000}
+  queue:
+    state-ttl-sec: 1800
+  sse:
+    push-interval-ms: 1000
+  client:
+    cookie-name: cid
+    cookie-max-age-days: 7
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

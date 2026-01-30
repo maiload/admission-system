@@ -1,0 +1,27 @@
+server:
+  port: 8020
+
+spring:
+  application:
+    name: admission-worker
+  data:
+    redis:
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:localhost:7001,localhost:7002,localhost:7003}
+
+admission:
+  worker:
+    poll-interval-ms: 200
+    max-batch: 200
+    rate-cap: 200
+    concurrency-cap: 10000
+  token:
+    secret: ${ENTER_TOKEN_SECRET:dev-enter-secret-key-change-in-production}
+    ttl-sec: ${ADMISSION_TOKEN_TTL_SEC:1800}
+    rate-counter-ttl-sec: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
