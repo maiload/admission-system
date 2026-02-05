@@ -1,13 +1,5 @@
 package com.example.ticket.admission.application.dto;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+public record IssueResult(long issued, long skipped, long remainingQueueSize) {
 
-@Getter
-@RequiredArgsConstructor
-public class IssueResult {
-
-    private final long issued;
-    private final long skipped;
-    private final long remainingQueueSize;
 }

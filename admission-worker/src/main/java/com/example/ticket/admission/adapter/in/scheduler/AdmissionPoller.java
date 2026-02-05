@@ -1,6 +1,6 @@
 package com.example.ticket.admission.adapter.in.scheduler;
 
-import com.example.ticket.admission.application.engine.AdmissionEngine;
+import com.example.ticket.admission.application.job.AdmissionJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,14 +11,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AdmissionPoller {
 
-    private final AdmissionEngine admissionEngine;
+    private final AdmissionJob admissionJob;
 
     @Scheduled(fixedDelayString = "${admission.worker.poll-interval-ms}")
     public void poll() {
-        admissionEngine.tick()
-                .subscribe(
-                        null,
-                        e -> log.error("Admission tick failed", e)
-                );
+        admissionJob.tick()
+                .doOnError(e -> log.error("Admission tick failed", e))
+                .subscribe();
     }
 }

@@ -4,9 +4,6 @@ import com.example.ticket.common.key.RedisKeyBuilder;
 import com.example.ticket.gate.application.port.in.JoinQueueInPort.JoinResult;
 import com.example.ticket.gate.application.port.in.StreamQueueInPort.ProgressResult;
 import com.example.ticket.gate.application.port.out.QueueRepositoryPort;
-import com.example.ticket.gate.application.port.out.QueueRepositoryPort.JoinCommand;
-import com.example.ticket.gate.application.port.out.QueueRepositoryPort.SizeQuery;
-import com.example.ticket.gate.application.port.out.QueueRepositoryPort.StateQuery;
 import com.example.ticket.gate.config.GateProperties;
 import com.example.ticket.gate.domain.QueueStatus;
 import lombok.RequiredArgsConstructor;
@@ -25,19 +22,8 @@ public class RedisQueueRepository implements QueueRepositoryPort {
 
     @Override
     public Mono<JoinResult> join(JoinCommand command) {
-        List<String> keys = List.of(
-                RedisKeyBuilder.queueJoin(command.eventId(), command.scheduleId(), command.clientId()),
-                RedisKeyBuilder.queue(command.eventId(), command.scheduleId()),
-                RedisKeyBuilder.queueState(command.eventId(), command.scheduleId(), command.queueToken()),
-                RedisKeyBuilder.queueSeq(command.eventId(), command.scheduleId())
-        );
-
-        List<String> args = List.of(
-                command.clientId(),
-                command.queueToken(),
-                String.valueOf(command.estimatedRank()),
-                String.valueOf(command.ttlSec())
-        );
+        List<String> keys = buildKeys(command);
+        List<String> args = buildArgs(command);
 
         return redisTemplate.execute(joinScript, keys, args)
                 .next()
@@ -95,5 +81,23 @@ public class RedisQueueRepository implements QueueRepositoryPort {
         long elapsedSec = Math.max(0L, (System.currentTimeMillis() - joinedAtMs) / 1000L);
         long decreased = simulation.exitRatePerSec() * elapsedSec;
         return Math.max(1L, estimatedRank - decreased);
+    }
+
+    private List<String> buildKeys(JoinCommand command) {
+        return List.of(
+                RedisKeyBuilder.queueJoin(command.eventId(), command.scheduleId(), command.clientId()),
+                RedisKeyBuilder.queue(command.eventId(), command.scheduleId()),
+                RedisKeyBuilder.queueState(command.eventId(), command.scheduleId(), command.queueToken()),
+                RedisKeyBuilder.queueSeq(command.eventId(), command.scheduleId())
+        );
+    }
+
+    private List<String> buildArgs(JoinCommand command) {
+        return List.of(
+                command.clientId(),
+                command.queueToken(),
+                String.valueOf(command.estimatedRank()),
+                String.valueOf(command.ttlSec())
+        );
     }
 }

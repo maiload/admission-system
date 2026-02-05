@@ -4,6 +4,7 @@ import com.example.ticket.common.key.RedisKeyBuilder;
 import com.example.ticket.common.port.ClockPort;
 import com.example.ticket.admission.application.dto.IssueResult;
 import com.example.ticket.admission.application.port.out.IssuerPort;
+import com.example.ticket.admission.domain.AdmissionConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -21,30 +22,11 @@ public class RedisIssuer implements IssuerPort {
 
     @Override
     public Mono<IssueResult> issue(String eventId, String scheduleId,
-                                    int maxIssue, int rateCap, int concurrencyCap,
-                                    int enterTtlSec, int qstateTtlSec, int rateTtlSec,
+                                    AdmissionConfig config,
                                     List<String> tokenPairs) {
-        long epochSecond = clock.nowEpochSecond();
 
-        List<String> keys = List.of(
-                RedisKeyBuilder.queue(eventId, scheduleId),
-                RedisKeyBuilder.rateCounter(eventId, scheduleId, epochSecond),
-                RedisKeyBuilder.activeSet(eventId, scheduleId)
-        );
-
-        String hashTag = RedisKeyBuilder.hashTag(eventId, scheduleId);
-        int tokenCount = tokenPairs.size() / 2;
-
-        List<String> args = new ArrayList<>();
-        args.add(String.valueOf(maxIssue));
-        args.add(String.valueOf(rateCap));
-        args.add(String.valueOf(concurrencyCap));
-        args.add(String.valueOf(enterTtlSec));
-        args.add(String.valueOf(qstateTtlSec));
-        args.add(String.valueOf(rateTtlSec));
-        args.add(hashTag);
-        args.add(String.valueOf(tokenCount));
-        args.addAll(tokenPairs);
+        List<String> keys = buildKeys(eventId, scheduleId);
+        List<String> args = buildArgs(config, eventId, scheduleId, tokenPairs);
 
         return redisTemplate.execute(issueScript, keys, args)
                 .next()
@@ -57,6 +39,35 @@ public class RedisIssuer implements IssuerPort {
                     return new IssueResult(issued, skipped, remaining);
                 })
                 .defaultIfEmpty(new IssueResult(0, 0, 0));
+    }
+
+    private List<String> buildKeys(String eventId, String scheduleId) {
+        long epochSecond = clock.nowEpochSecond();
+        return List.of(
+                RedisKeyBuilder.queue(eventId, scheduleId),
+                RedisKeyBuilder.rateCounter(eventId, scheduleId, epochSecond),
+                RedisKeyBuilder.activeSet(eventId, scheduleId)
+        );
+    }
+
+    private List<String> buildArgs(AdmissionConfig config,
+                                   String eventId,
+                                   String scheduleId,
+                                   List<String> tokenPairs) {
+        String hashTag = RedisKeyBuilder.hashTag(eventId, scheduleId);
+        int tokenCount = tokenPairs.size() / 2;
+
+        List<String> args = new ArrayList<>();
+        args.add(String.valueOf(config.maxBatch()));
+        args.add(String.valueOf(config.rateCap()));
+        args.add(String.valueOf(config.concurrencyCap()));
+        args.add(String.valueOf(config.enterTtlSec()));
+        args.add(String.valueOf(config.qstateTtlSec()));
+        args.add(String.valueOf(config.rateTtlSec()));
+        args.add(hashTag);
+        args.add(String.valueOf(tokenCount));
+        args.addAll(tokenPairs);
+        return args;
     }
 
     private long toLong(Object obj) {

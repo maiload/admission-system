@@ -5,7 +5,7 @@ import com.example.ticket.admission.adapter.out.redis.RedisActiveSchedule;
 import com.example.ticket.admission.adapter.out.redis.RedisIssuer;
 import com.example.ticket.admission.adapter.out.token.HmacTokenGenerator;
 import com.example.ticket.admission.adapter.out.system.SystemClock;
-import com.example.ticket.admission.application.engine.AdmissionEngine;
+import com.example.ticket.admission.application.job.AdmissionJob;
 import com.example.ticket.admission.application.port.out.ActiveSchedulePort;
 import com.example.ticket.admission.application.port.out.IssuerPort;
 import com.example.ticket.admission.application.port.out.TokenGeneratorPort;
@@ -24,7 +24,7 @@ import java.util.List;
 @EnableConfigurationProperties(AdmissionProperties.class)
 public class WorkerConfig {
 
-    // --- Infrastructure ---
+    // Infra Beans
 
     @Bean
     public ClockPort clockPort() {
@@ -37,7 +37,7 @@ public class WorkerConfig {
         return RedisScript.of(new ClassPathResource("lua/admission-issue.lua"), List.class);
     }
 
-    // --- Ports ---
+    // Outbound Port Beans
 
     @Bean
     public IssuerPort issuerPort(
@@ -61,23 +61,18 @@ public class WorkerConfig {
                 admissionProperties.token().ttlSec());
     }
 
-    // --- Engine ---
+    // Job Beans
 
     @Bean
-    public AdmissionEngine admissionEngine(
+    public AdmissionJob admissionJob(
             ActiveSchedulePort activeSchedulePort,
             IssuerPort issuerPort,
             TokenGeneratorPort tokenGeneratorPort,
             AdmissionProperties admissionProperties) {
-        int maxBatch = admissionProperties.worker().maxBatch();
-        int rateCap = admissionProperties.worker().rateCap();
-        int concurrencyCap = admissionProperties.worker().concurrencyCap();
-        int enterTtlSec = admissionProperties.token().ttlSec();
-        int qstateTtlSec = admissionProperties.queue().stateTtlSec();
-        int rateTtlSec = admissionProperties.token().rateCounterTtlSec();
-        return new AdmissionEngine(
-                activeSchedulePort, issuerPort, tokenGeneratorPort,
-                maxBatch, rateCap, concurrencyCap,
-                enterTtlSec, qstateTtlSec, rateTtlSec);
+        return new AdmissionJob(
+                activeSchedulePort,
+                issuerPort,
+                tokenGeneratorPort,
+                admissionProperties.toConfig());
     }
 }

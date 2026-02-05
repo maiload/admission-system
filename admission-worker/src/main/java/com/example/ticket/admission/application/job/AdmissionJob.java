@@ -1,36 +1,25 @@
-package com.example.ticket.admission.application.engine;
+package com.example.ticket.admission.application.job;
 
 import com.example.ticket.admission.application.dto.IssueResult;
 import com.example.ticket.admission.application.port.out.ActiveSchedulePort;
 import com.example.ticket.admission.application.port.out.IssuerPort;
 import com.example.ticket.admission.application.port.out.TokenGeneratorPort;
+import com.example.ticket.admission.domain.AdmissionConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-/**
- * Core admission engine. Each tick processes all active schedules,
- * pops queue members, and issues enter tokens.
- */
 @Slf4j
 @RequiredArgsConstructor
-public class AdmissionEngine {
+public class AdmissionJob {
 
     private final ActiveSchedulePort activeSchedulePort;
     private final IssuerPort issuerPort;
-    private final TokenGeneratorPort tokenGenerator;
-    private final int maxBatch;
-    private final int rateCap;
-    private final int concurrencyCap;
-    private final int enterTtlSec;
-    private final int qstateTtlSec;
-    private final int rateTtlSec;
+    private final TokenGeneratorPort tokenGeneratorPort;
+    private final AdmissionConfig config;
 
-    /**
-     * Single tick: process all active schedules.
-     */
     public Mono<Void> tick() {
         return activeSchedulePort.getActiveSchedules()
                 .flatMap(this::processSchedule)
@@ -46,21 +35,17 @@ public class AdmissionEngine {
         String eventId = parts[0];
         String scheduleId = parts[1];
 
-        // Pre-generate token pairs
-        List<String> tokenPairs = tokenGenerator.generateBatch(eventId, scheduleId, maxBatch);
+        // list of [jti, enterToken] pairs
+        List<String> tokenPairs = tokenGeneratorPort.generateBatch(eventId, scheduleId, config.maxBatch());
 
-        return issuerPort.issue(eventId, scheduleId,
-                        maxBatch, rateCap, concurrencyCap,
-                        enterTtlSec, qstateTtlSec, rateTtlSec,
-                        tokenPairs)
-                .doOnNext(result -> {
-                    if (result.getIssued() > 0) {
+        return issuerPort.issue(eventId, scheduleId, config, tokenPairs)
+                .filter(result -> result.issued() > 0)
+                .doOnNext(result ->
                         log.info("Schedule {}:{} — issued={}, skipped={}, remaining={}",
                                 eventId, scheduleId,
-                                result.getIssued(), result.getSkipped(),
-                                result.getRemainingQueueSize());
-                    }
-                })
+                                result.issued(), result.skipped(),
+                                result.remainingQueueSize())
+                )
                 .onErrorResume(e -> {
                     log.error("Failed to issue for {}:{}", eventId, scheduleId, e);
                     return Mono.empty();

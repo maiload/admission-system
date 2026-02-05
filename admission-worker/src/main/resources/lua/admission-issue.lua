@@ -50,26 +50,21 @@ local popped = redis.call('ZPOPMIN', queueKey, issueCount)
 
 local issued  = 0
 local skipped = 0
-local tokenIdx = 9  -- ARGV index for first jti
+local tokenIdx = 9  -- first jti index
 
 for i = 1, #popped, 2 do
     local queueToken = popped[i]
-    -- local score = popped[i + 1]  -- unused
 
-    -- Get corresponding jti and enterToken
     local jti        = ARGV[tokenIdx]
     local enterToken = ARGV[tokenIdx + 1]
     tokenIdx = tokenIdx + 2
 
-    -- Look up qstate
     local stateKey = 'qstate:' .. hashTag .. ':' .. queueToken
     local status = redis.call('HGET', stateKey, 'status')
 
     if status == 'WAITING' then
-        -- Get clientId from qstate
         local clientId = redis.call('HGET', stateKey, 'clientId')
 
-        -- Update qstate → ADMISSION_GRANTED
         redis.call('HSET', stateKey,
             'status', 'ADMISSION_GRANTED',
             'enterToken', enterToken,
@@ -77,11 +72,9 @@ for i = 1, #popped, 2 do
         )
         redis.call('EXPIRE', stateKey, qstateTtlSec)
 
-        -- Store enter token: enter:{evt}:{sch}:{jti} = clientId
         local enterKey = 'enter:' .. hashTag .. ':' .. jti
         redis.call('SET', enterKey, clientId, 'EX', enterTtlSec)
 
-        -- Add to active set
         redis.call('SADD', activeKey, clientId)
 
         issued = issued + 1

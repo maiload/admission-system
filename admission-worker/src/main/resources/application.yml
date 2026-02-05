@@ -16,7 +16,7 @@ admission:
     rate-cap: 200
     concurrency-cap: 10000
   token:
-    secret: ${ENTER_TOKEN_SECRET:dev-enter-secret-key-change-in-production}
+    secret: ${ENTER_TOKEN_SECRET:enter-secret-key}
     ttl-sec: ${ADMISSION_TOKEN_TTL_SEC:120}
     rate-counter-ttl-sec: 3
   queue:
