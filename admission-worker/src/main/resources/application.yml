@@ -17,8 +17,10 @@ admission:
     concurrency-cap: 10000
   token:
     secret: ${ENTER_TOKEN_SECRET:dev-enter-secret-key-change-in-production}
-    ttl-sec: ${ADMISSION_TOKEN_TTL_SEC:1800}
+    ttl-sec: ${ADMISSION_TOKEN_TTL_SEC:120}
     rate-counter-ttl-sec: 3
+  queue:
+    state-ttl-sec: ${ADMISSION_QUEUE_STATE_TTL_SEC:1800}
 
 management:
   endpoints:

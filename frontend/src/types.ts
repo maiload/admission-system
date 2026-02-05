@@ -4,7 +4,6 @@ export interface SyncResponse {
   serverTimeMs: number;
   startAtMs: number;
   syncToken: string;
-  windowMs: number;
 }
 
 export interface JoinResponse {
@@ -21,13 +20,14 @@ export interface QueueProgress {
   enterToken?: string;
   eventId?: string;
   scheduleId?: string;
-  serverTimeMs: number;
 }
 
 // --- Ticketing Core Types ---
 
 export interface EnterResponse {
-  coreSessionToken: string;
+  sessionTtlSec: number;
+  eventId: string;
+  scheduleId: string;
 }
 
 export interface Seat {

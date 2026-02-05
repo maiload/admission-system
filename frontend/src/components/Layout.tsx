@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
 export default function Layout() {
   return (
@@ -6,7 +6,7 @@ export default function Layout() {
       {/* Header */}
       <header className="bg-ktx-blue text-white shadow-md">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="shrink-0">
               <rect width="32" height="32" rx="6" fill="#E63312" />
               <path d="M6 22h20l-2-12H8L6 22z" fill="white" />
@@ -17,7 +17,7 @@ export default function Layout() {
               <span className="text-lg font-bold tracking-wide">KTX</span>
               <span className="text-xs ml-1 opacity-80">승차권 예매</span>
             </div>
-          </div>
+          </Link>
         </div>
       </header>
 

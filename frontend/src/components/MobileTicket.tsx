@@ -7,6 +7,8 @@ interface Props {
 }
 
 export default function MobileTicket({ schedule, confirmationId, seatLabels }: Props) {
+  const normalizedCode = confirmationId.replace(/-/g, '').toUpperCase();
+  const displayCode = normalizedCode.substring(0, 12);
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-sm mx-auto">
       {/* Top bar */}
@@ -74,7 +76,7 @@ export default function MobileTicket({ schedule, confirmationId, seatLabels }: P
           <div>
             <p className="text-gray-400">예약번호</p>
             <p className="font-semibold text-ktx-red text-xs break-all">
-              {confirmationId.substring(0, 12).toUpperCase()}
+              {displayCode}
             </p>
           </div>
         </div>
@@ -97,7 +99,7 @@ export default function MobileTicket({ schedule, confirmationId, seatLabels }: P
             ))}
           </div>
           <p className="text-xs text-gray-400 font-mono">
-            {confirmationId.substring(0, 16).toUpperCase()}
+            {displayCode}
           </p>
         </div>
       </div>

@@ -26,7 +26,6 @@ public class RedisSessionAdapter implements SessionPort {
         List<String> keys = Arrays.asList(
                 RedisKeyBuilder.enterToken(eventId, scheduleId, jti),
                 RedisKeyBuilder.coreSession(eventId, scheduleId, sessionId),
-                RedisKeyBuilder.coreSessionIndex(eventId, scheduleId, clientId),
                 RedisKeyBuilder.activeSet(eventId, scheduleId)
         );
 

@@ -56,7 +56,6 @@
   "serverTimeMs": 1738200000123,
   "startAtMs": 1738200005000,
   "syncToken": "base64url(hmac(...))",
-  "windowMs": 5000
 }
 ```
 
@@ -129,8 +128,8 @@ eventId | scheduleId | startAtMs | issuedAtMs | nonce(UUID)
 | 500ms ~ 2s | 100,000 | 200,000 | top 30% |
 | 2s ~ 10s | 300,000 | 700,000 | ~100% |
 
-- `estimatedRank = bucketBase + random(0, bucketRange)`
-- ZSET score = `estimatedRank * 10 + (receivedAtMs % 10)` (tie-breaker)
+- `estimatedRank = bucketBase`
+- ZSET score = `estimatedRank * 10 + random(0, 9)` (tie-breaker)
 
 ---
 
@@ -148,7 +147,7 @@ SSE 스트리밍으로 대기열 상태를 실시간 전달.
 
 ```
 event: queue.progress
-data: {"queueToken":"qt_...","status":"WAITING","estimatedRank":12345,"approxPosition":9876,"estimatedWaitSec":142,"enterToken":null,"serverTimeMs":1738200001123}
+data: {"queueToken":"qt_...","status":"WAITING","estimatedRank":12345,"approxPosition":9876,"estimatedWaitSec":142,"enterToken":null}
 
 ```
 

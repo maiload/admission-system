@@ -30,15 +30,22 @@ export default function HomePage() {
   const [countdown, setCountdown] = useState(COUNTDOWN_SEC);
   const [tooEarly, setTooEarly] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [serverOffsetMs, setServerOffsetMs] = useState(0);
+  const [startAtMs, setStartAtMs] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>(null);
 
   const handleReady = useCallback(async () => {
     setSyncing(true);
     try {
       const sync = await syncTime(SCHEDULE.eventId, SCHEDULE.scheduleId);
+      setServerOffsetMs(sync.serverTimeMs - Date.now());
+      setStartAtMs(sync.startAtMs);
       setSyncToken(sync.syncToken);
       setSchedule(SCHEDULE);
-      setCountdown(COUNTDOWN_SEC);
+      const initialRemaining = Math.max(0, sync.startAtMs - sync.serverTimeMs);
+      setCountdown(Math.ceil(initialRemaining / 1000));
+      setIsOpen(initialRemaining <= 0);
       setTooEarly(false);
       setShowModal(true);
     } catch {
@@ -52,21 +59,24 @@ export default function HomePage() {
   useEffect(() => {
     if (!showModal) return;
     timerRef.current = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(timerRef.current!);
-          return 0;
-        }
-        return c - 1;
+      const serverNow = Date.now() + serverOffsetMs;
+      const remainingMs = startAtMs - serverNow;
+      const seconds =
+        remainingMs > 0
+          ? Math.ceil(remainingMs / 1000)
+          : Math.floor(Math.abs(remainingMs) / 1000);
+      setIsOpen(remainingMs <= 0);
+      setCountdown((prev) => {
+        return seconds === prev ? prev : seconds;
       });
-    }, 1000);
+    }, 100);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [showModal]);
+  }, [showModal, serverOffsetMs, startAtMs]);
 
   const handleBook = () => {
-    if (countdown > 0) {
+    if (!isOpen) {
       setTooEarly(true);
       setTimeout(() => setTooEarly(false), 1500);
       return;
@@ -160,26 +170,28 @@ export default function HomePage() {
             <p className="text-sm text-gray-500 mb-2">예매 시작까지</p>
             <p
               className={`text-7xl font-bold font-mono mb-6 transition-colors ${
-                countdown === 0 ? 'text-ktx-red' : 'text-ktx-navy'
+                isOpen ? 'text-ktx-red' : 'text-ktx-navy'
               }`}
             >
               {countdown.toString().padStart(2, '0')}
             </p>
 
-            {countdown === 0 && (
+            {isOpen && (
               <div className="w-16 h-1 bg-ktx-red rounded mx-auto mb-4 animate-pulse" />
             )}
 
-            {tooEarly && (
-              <p className="text-red-500 font-semibold text-sm mb-3 animate-bounce">
-                아직 시작 전입니다!
-              </p>
-            )}
+            <div className="h-6 mb-3">
+              {tooEarly && (
+                <p className="text-red-500 font-semibold text-sm animate-bounce">
+                  아직 시작 전입니다!
+                </p>
+              )}
+            </div>
 
             <button
               onClick={handleBook}
               className={`w-full font-bold py-4 rounded-xl text-lg transition-all cursor-pointer ${
-                countdown === 0
+                isOpen
                   ? 'bg-ktx-red hover:bg-red-700 text-white shadow-lg shadow-red-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}

@@ -17,12 +17,12 @@ interface BookingState {
   setEnterToken: (t: string) => void;
 
   // ticketing core
-  coreSessionToken: string;
-  setCoreSessionToken: (t: string) => void;
   seats: Seat[];
   setSeats: (s: Seat[]) => void;
   selectedSeatIds: string[];
+  selectedSeatLabels: string[];
   toggleSeat: (id: string) => void;
+  setSelectedSeatLabels: (labels: string[]) => void;
   holdId: string;
   setHoldId: (id: string) => void;
   expiresAt: string;
@@ -40,9 +40,9 @@ const initialState = {
   queueToken: '',
   queueProgress: null,
   enterToken: '',
-  coreSessionToken: '',
   seats: [],
   selectedSeatIds: [],
+  selectedSeatLabels: [],
   holdId: '',
   expiresAt: '',
   confirmationId: '',
@@ -50,12 +50,11 @@ const initialState = {
 
 export const useBookingStore = create<BookingState>((set) => ({
   ...initialState,
-  setSchedule: (s) => set({ ...initialState, schedule: s }),
+  setSchedule: (s) => set({ schedule: s }),
   setSyncToken: (t) => set({ syncToken: t }),
   setQueueToken: (t) => set({ queueToken: t }),
   setQueueProgress: (p) => set({ queueProgress: p }),
   setEnterToken: (t) => set({ enterToken: t }),
-  setCoreSessionToken: (t) => set({ coreSessionToken: t }),
   setSeats: (s) => set({ seats: s }),
   toggleSeat: (id) =>
     set((state) => {
@@ -66,6 +65,7 @@ export const useBookingStore = create<BookingState>((set) => ({
           : [...state.selectedSeatIds, id],
       };
     }),
+  setSelectedSeatLabels: (labels) => set({ selectedSeatLabels: labels }),
   setHoldId: (id) => set({ holdId: id }),
   setExpiresAt: (t) => set({ expiresAt: t }),
   setConfirmationId: (id) => set({ confirmationId: id }),

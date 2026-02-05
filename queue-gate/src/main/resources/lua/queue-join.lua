@@ -4,32 +4,29 @@
 -- KEYS[1] = qjoin:{evt}:{sch}:{clientId}   (duplicate check STRING)
 -- KEYS[2] = q:{evt}:{sch}:z                (queue ZSET)
 -- KEYS[3] = qstate:{evt}:{sch}:{queueToken} (state HASH)
+-- KEYS[4] = qseq:{evt}:{sch}                (score SEQ)
 --
 -- ARGV[1] = clientId
 -- ARGV[2] = queueToken
--- ARGV[3] = score
--- ARGV[4] = estimatedRank
--- ARGV[5] = ttlSec
+-- ARGV[3] = estimatedRank
+-- ARGV[4] = ttlSec
 --
 -- Returns: { "EXISTING"|"CREATED", queueToken, estimatedRank }
 
 local joinKey   = KEYS[1]
 local queueKey  = KEYS[2]
 local stateKey  = KEYS[3]
+local seqKey    = KEYS[4]
 
 local clientId      = ARGV[1]
 local queueToken    = ARGV[2]
-local score         = tonumber(ARGV[3])
-local estimatedRank = ARGV[4]
-local ttlSec        = tonumber(ARGV[5])
+local estimatedRank = ARGV[3]
+local ttlSec        = tonumber(ARGV[4])
 
 -- 1. Check for existing join (idempotent)
 local existing = redis.call('GET', joinKey)
 if existing then
-    -- Client already joined — retrieve existing state
     local existingToken = existing
-    -- Build existing state key from the stored queueToken
-    -- The join key stores "queueToken|estimatedRank"
     local parts = {}
     for part in existing:gmatch("[^|]+") do
         parts[#parts + 1] = part
@@ -39,20 +36,33 @@ if existing then
     return { "EXISTING", existToken, existRank }
 end
 
--- 2. ZADD to queue
+-- 2. Compute score with sequence tie-breaker
+local seq = redis.call('INCR', seqKey)
+if ttlSec and ttlSec > 0 then
+    local ttl = redis.call('TTL', seqKey)
+    if ttl < 0 then
+        redis.call('EXPIRE', seqKey, ttlSec)
+    end
+end
+local score = tonumber(estimatedRank) + (seq % 1000000) * 0.000001
+
+-- 3. ZADD to queue
 redis.call('ZADD', queueKey, score, queueToken)
 
--- 3. HSET state
+-- 4. HSET state
+local time = redis.call('TIME')
+local joinedAtMs = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
 redis.call('HSET', stateKey,
     'status', 'WAITING',
     'estimatedRank', estimatedRank,
+    'joinedAtMs', joinedAtMs,
     'clientId', clientId,
     'enterToken', '',
     'jti', ''
 )
 redis.call('EXPIRE', stateKey, ttlSec)
 
--- 4. Store join marker: clientId → "queueToken|estimatedRank"
+-- 5. Store join marker: clientId → "queueToken|estimatedRank"
 redis.call('SET', joinKey, queueToken .. '|' .. estimatedRank, 'EX', ttlSec)
 
 return { "CREATED", queueToken, estimatedRank }

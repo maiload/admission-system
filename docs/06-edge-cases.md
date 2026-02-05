@@ -77,7 +77,7 @@
 | E5-1: 60초 내 confirm 성공 | 정상 흐름 | 200 + reservationId | 예매 완료 화면 |
 | E5-2: 60초 초과 (홀드 만료) | 결제 지연 | 409 HOLD_EXPIRED | "선점 시간이 만료되었습니다" → 좌석 재선택 |
 | E5-3: confirm 중복 호출 | 더블 클릭 | 200 + 기존 reservationId (멱등) | 정상 처리 |
-| E5-4: 타인의 holdId로 confirm | 조작 시도 | 403 또는 404 | 에러 표시 |
+| E5-4: 타인의 holdId로 confirm | 조작 시도 | 409 HOLD_EXPIRED | 에러 표시 |
 | E5-5: confirm 중 네트워크 오류 | 불안정 | 클라이언트 timeout | 재시도 → 멱등성으로 안전 |
 
 ---

@@ -1,0 +1,173 @@
+services:
+  # --- PostgreSQL ---
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ticketing
+      POSTGRES_USER: ticketing
+      POSTGRES_PASSWORD: ticketing_pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketing"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # --- Redis Cluster (6 nodes) ---
+  redis-node-1:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7001:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-node-2:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7002:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-node-3:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7003:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-node-4:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7004:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-node-5:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7005:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-node-6:
+    image: redis:7
+    command: >
+      redis-server --port 6379
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+    ports:
+      - "7006:6379"
+    networks:
+      - redis-cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-cluster-creator:
+    image: redis:7
+    networks:
+      - redis-cluster
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      redis-node-2:
+        condition: service_healthy
+      redis-node-3:
+        condition: service_healthy
+      redis-node-4:
+        condition: service_healthy
+      redis-node-5:
+        condition: service_healthy
+      redis-node-6:
+        condition: service_healthy
+    entrypoint: ["sh","-c","
+      redis-cli --cluster create
+      redis-node-1:6379 redis-node-2:6379 redis-node-3:6379
+      redis-node-4:6379 redis-node-5:6379 redis-node-6:6379
+      --cluster-replicas 1 --cluster-yes
+    "]
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    networks:
+      - redis-cluster
+    depends_on:
+      - redis-cluster-creator
+
+volumes:
+  postgres-data:
+
+networks:
+  data-net:
+    driver: bridge
+    name: data-net
+  redis-cluster:
+    driver: bridge
+    name: redis-cluster

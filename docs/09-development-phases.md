@@ -96,9 +96,9 @@ DDD + Lightweight CQRS 적용.
   - `SessionPort` (Redis core session + active SET)
   - `SoldOutPort` (Redis soldout 플래그)
 
-- [ ] 3-3. UseCase (application 레이어)
-  - Command: `EnterCoreUseCase`, `CreateHoldUseCase`, `ConfirmHoldUseCase`
-  - Query: `SeatQueryUseCase`
+- [ ] 3-3. Inbound Port + Service (application 레이어)
+  - Command InPort: `EnterCoreInPort`, `CreateHoldInPort`, `ConfirmHoldInPort`
+  - Query InPort: `SeatQueryInPort`
 
 - [ ] 3-4. Adapter - DB (R2DBC)
   - `R2dbcHoldRepository`, `R2dbcReservationRepository`, `R2dbcSeatQuery`
@@ -149,20 +149,17 @@ DDD + Lightweight CQRS 적용.
   - `SoldOutQueryPort`
   - `TokenSignerPort`
 
-- [ ] 4-3. UseCase
-  - `SyncUseCase`
-  - `JoinQueueUseCase`
-  - `StreamQueueUseCase`
+- [ ] 4-3. Inbound Port + Service
+  - `SyncInPort` / `SyncService`
+  - `JoinQueueInPort` / `JoinQueueService`
+  - `StreamQueueInPort` / `StreamQueueService`
 
 - [ ] 4-4. Adapter - Redis
   - `RedisQueueRepository` (Queue Join Lua 포함)
   - `RedisSoldOutQuery`
 
 - [ ] 4-5. Adapter - Web
-  - `GateSyncController` (GET /gate/sync + clientId 쿠키 발급)
-  - `GateJoinController` (POST /gate/join)
-  - `GateStreamController` (GET /gate/stream, SSE)
-  - `GateStatusController` (GET /gate/status, polling fallback)
+  - `GateController` (GET /gate/sync, POST /gate/join, GET /gate/stream, GET /gate/status)
 
 - [ ] 4-6. Lua 스크립트
   - `queue-join.lua` 파일 작성 + RedisQueueRepository에서 EVAL 호출

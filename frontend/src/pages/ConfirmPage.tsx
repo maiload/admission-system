@@ -9,7 +9,8 @@ export default function ConfirmPage() {
   const holdId = useBookingStore((s) => s.holdId);
   const expiresAt = useBookingStore((s) => s.expiresAt);
   const selectedSeatIds = useBookingStore((s) => s.selectedSeatIds);
-  const coreSessionToken = useBookingStore((s) => s.coreSessionToken);
+  const seats = useBookingStore((s) => s.seats);
+  const selectedSeatLabels = useBookingStore((s) => s.selectedSeatLabels);
   const setConfirmationId = useBookingStore((s) => s.setConfirmationId);
 
   const [remainSec, setRemainSec] = useState(0);
@@ -43,7 +44,7 @@ export default function ConfirmPage() {
     setConfirming(true);
     setError('');
     try {
-      const res = await confirmBooking(holdId, coreSessionToken);
+      const res = await confirmBooking(holdId);
       setConfirmationId(res.confirmationId);
       navigate('/complete', { replace: true });
     } catch {
@@ -62,6 +63,11 @@ export default function ConfirmPage() {
 
   const expired = remainSec <= 0;
   const urgent = remainSec > 0 && remainSec <= 30;
+  const fallbackLabels = selectedSeatIds.map((id) => {
+    const seat = seats.find((s) => s.seatId === id);
+    return seat ? seat.label : id.slice(0, 8);
+  });
+  const displaySeatLabels = selectedSeatLabels.length > 0 ? selectedSeatLabels : fallbackLabels;
 
   return (
     <div className="max-w-md mx-auto">
@@ -112,8 +118,13 @@ export default function ConfirmPage() {
             <div>
               <p className="text-gray-400">좌석</p>
               <p className="font-semibold text-ktx-navy">
-                {selectedSeatIds.length}석
+                {displaySeatLabels.length}석
               </p>
+              {displaySeatLabels.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {displaySeatLabels.join(', ')}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-gray-400">요금</p>

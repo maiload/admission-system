@@ -1,14 +1,5 @@
 package com.example.ticket.core.application.dto.command;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+public record EnterResult(String coreSessionToken, int expiresInSec, String eventId, String scheduleId) {
 
-@Getter
-@RequiredArgsConstructor
-public class EnterResult {
-
-    private final String coreSessionToken;
-    private final int expiresInSec;
-    private final String eventId;
-    private final String scheduleId;
 }

@@ -45,4 +45,13 @@ public class R2dbcReservationRepository implements ReservationRepositoryPort {
                 ))
                 .first();
     }
+
+    @Override
+    public Mono<Long> countByScheduleAndClient(UUID scheduleId, String clientId) {
+        return db.sql("SELECT COUNT(*) AS cnt FROM reservations WHERE schedule_id = :scheduleId AND client_id = :clientId")
+                .bind("scheduleId", scheduleId)
+                .bind("clientId", clientId)
+                .map(row -> row.get("cnt", Long.class))
+                .first();
+    }
 }

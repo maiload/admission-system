@@ -8,6 +8,7 @@ export default function CompletePage() {
   const confirmationId = useBookingStore((s) => s.confirmationId);
   const selectedSeatIds = useBookingStore((s) => s.selectedSeatIds);
   const seats = useBookingStore((s) => s.seats);
+  const selectedSeatLabels = useBookingStore((s) => s.selectedSeatLabels);
   const reset = useBookingStore((s) => s.reset);
 
   if (!schedule || !confirmationId) {
@@ -15,10 +16,11 @@ export default function CompletePage() {
     return null;
   }
 
-  const seatLabels = selectedSeatIds.map((id) => {
+  const fallbackLabels = selectedSeatIds.map((id) => {
     const seat = seats.find((s) => s.seatId === id);
     return seat?.label ?? id;
   });
+  const seatLabels = selectedSeatLabels.length > 0 ? selectedSeatLabels : fallbackLabels;
 
   const handleHome = () => {
     reset();

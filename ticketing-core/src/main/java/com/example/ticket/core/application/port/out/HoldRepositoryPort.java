@@ -14,6 +14,8 @@ public interface HoldRepositoryPort {
 
     Mono<Hold> findByScheduleAndClient(UUID scheduleId, String clientId);
 
+    Mono<Long> countByScheduleAndClient(UUID scheduleId, String clientId);
+
     Mono<Void> deleteById(UUID holdId);
 
     Mono<Long> deleteExpired(Instant now);

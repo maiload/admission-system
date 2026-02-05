@@ -1,12 +1,15 @@
 package com.example.ticket.gate.adapter.out.redis;
 
 import com.example.ticket.common.key.RedisKeyBuilder;
-import com.example.ticket.gate.application.dto.JoinResult;
-import com.example.ticket.gate.application.dto.QueueProgressDto;
+import com.example.ticket.gate.application.port.in.JoinQueueInPort.JoinResult;
+import com.example.ticket.gate.application.port.in.StreamQueueInPort.ProgressResult;
 import com.example.ticket.gate.application.port.out.QueueRepositoryPort;
+import com.example.ticket.gate.application.port.out.QueueRepositoryPort.JoinCommand;
+import com.example.ticket.gate.application.port.out.QueueRepositoryPort.SizeQuery;
+import com.example.ticket.gate.application.port.out.QueueRepositoryPort.StateQuery;
+import com.example.ticket.gate.config.GateProperties;
 import com.example.ticket.gate.domain.QueueStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import reactor.core.publisher.Mono;
@@ -18,22 +21,22 @@ public class RedisQueueRepository implements QueueRepositoryPort {
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
     private final RedisScript<List> joinScript;
+    private final GateProperties gateProperties;
 
     @Override
-    public Mono<JoinResult> join(String eventId, String scheduleId, String clientId,
-                                  String queueToken, double score, long estimatedRank, int ttlSec) {
+    public Mono<JoinResult> join(JoinCommand command) {
         List<String> keys = List.of(
-                RedisKeyBuilder.queueJoin(eventId, scheduleId, clientId),
-                RedisKeyBuilder.queue(eventId, scheduleId),
-                RedisKeyBuilder.queueState(eventId, scheduleId, queueToken)
+                RedisKeyBuilder.queueJoin(command.eventId(), command.scheduleId(), command.clientId()),
+                RedisKeyBuilder.queue(command.eventId(), command.scheduleId()),
+                RedisKeyBuilder.queueState(command.eventId(), command.scheduleId(), command.queueToken()),
+                RedisKeyBuilder.queueSeq(command.eventId(), command.scheduleId())
         );
 
         List<String> args = List.of(
-                clientId,
-                queueToken,
-                String.valueOf(score),
-                String.valueOf(estimatedRank),
-                String.valueOf(ttlSec)
+                command.clientId(),
+                command.queueToken(),
+                String.valueOf(command.estimatedRank()),
+                String.valueOf(command.ttlSec())
         );
 
         return redisTemplate.execute(joinScript, keys, args)
@@ -41,7 +44,6 @@ public class RedisQueueRepository implements QueueRepositoryPort {
                 .map(result -> {
                     @SuppressWarnings("unchecked")
                     List<String> res = (List<String>) result;
-                    // Lua returns: { "EXISTING"|"CREATED", queueToken, estimatedRank }
                     boolean alreadyJoined = "EXISTING".equals(res.get(0));
                     String returnedToken = res.get(1);
                     long returnedRank = Long.parseLong(res.get(2));
@@ -51,8 +53,8 @@ public class RedisQueueRepository implements QueueRepositoryPort {
     }
 
     @Override
-    public Mono<QueueProgressDto> getState(String eventId, String scheduleId, String queueToken) {
-        String stateKey = RedisKeyBuilder.queueState(eventId, scheduleId, queueToken);
+    public Mono<ProgressResult> getState(StateQuery query) {
+        String stateKey = RedisKeyBuilder.queueState(query.eventId(), query.scheduleId(), query.queueToken());
 
         return redisTemplate.opsForHash().entries(stateKey)
                 .collectMap(e -> e.getKey().toString(), e -> e.getValue().toString())
@@ -61,19 +63,37 @@ public class RedisQueueRepository implements QueueRepositoryPort {
                     QueueStatus status = QueueStatus.valueOf(
                             map.getOrDefault("status", "EXPIRED"));
                     long rank = Long.parseLong(map.getOrDefault("estimatedRank", "0"));
+                    rank = simulateRankIfEnabled(rank, map.get("joinedAtMs"));
                     String enterToken = map.get("enterToken");
 
-                    return new QueueProgressDto(
+                    return new ProgressResult(
                             status, rank, 0, enterToken,
-                            eventId, scheduleId, System.currentTimeMillis()
+                            query.eventId(), query.scheduleId()
                     );
                 });
     }
 
     @Override
-    public Mono<Long> getQueueSize(String eventId, String scheduleId) {
-        String queueKey = RedisKeyBuilder.queue(eventId, scheduleId);
+    public Mono<Long> getQueueSize(SizeQuery query) {
+        String queueKey = RedisKeyBuilder.queue(query.eventId(), query.scheduleId());
         return redisTemplate.opsForZSet().size(queueKey)
                 .defaultIfEmpty(0L);
+    }
+
+    // 시뮬레이션에서 경과된 시간과 이탈률에 비례해서 대기열을 감소시키는 함수
+    private long simulateRankIfEnabled(long estimatedRank, String joinedAtMsRaw) {
+        GateProperties.Sync.Simulation simulation = gateProperties.sync().simulation();
+        if (!simulation.enabled() || simulation.exitRatePerSec() <= 0 || joinedAtMsRaw == null) {
+            return estimatedRank;
+        }
+        long joinedAtMs;
+        try {
+            joinedAtMs = Long.parseLong(joinedAtMsRaw);
+        } catch (NumberFormatException e) {
+            return estimatedRank;
+        }
+        long elapsedSec = Math.max(0L, (System.currentTimeMillis() - joinedAtMs) / 1000L);
+        long decreased = simulation.exitRatePerSec() * elapsedSec;
+        return Math.max(1L, estimatedRank - decreased);
     }
 }

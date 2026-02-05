@@ -14,13 +14,16 @@ spring:
         nodes: ${REDIS_CLUSTER_NODES:localhost:7001,localhost:7002,localhost:7003}
 
 core:
+  event-id: ${CORE_EVENT_ID:a0000000-0000-0000-0000-000000000001}
   session:
     secret: ${CORE_SESSION_SECRET:dev-core-secret-key-change-in-production}
     ttl-sec: 300
+    cookie-name: core_session
   enter-token:
     secret: ${ENTER_TOKEN_SECRET:dev-enter-secret-key-change-in-production}
   hold:
     ttl-sec: 60
+    max-per-client: 4
   scheduler:
     hold-cleanup-interval-ms: 2000
     active-cleanup-interval-ms: 10000

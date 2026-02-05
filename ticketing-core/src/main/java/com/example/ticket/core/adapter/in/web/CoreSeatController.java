@@ -4,51 +4,59 @@ import com.example.ticket.common.error.BusinessException;
 import com.example.ticket.common.error.ErrorCode;
 import com.example.ticket.common.token.HmacSigner;
 import com.example.ticket.common.util.TokenFormat;
-import com.example.ticket.core.application.dto.query.ZoneSeatsView;
-import com.example.ticket.core.application.query.SeatQueryUseCase;
+import com.example.ticket.core.application.port.in.SeatQueryInPort;
+import com.example.ticket.core.adapter.in.web.request.CoreSeatRequest;
+import com.example.ticket.core.adapter.in.web.response.CoreSeatResponse;
+import com.example.ticket.core.config.CoreProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpCookie;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/core")
 @RequiredArgsConstructor
 public class CoreSeatController {
 
-    private final SeatQueryUseCase seatQueryUseCase;
-
-    @Value("${core.session.secret}")
-    private String sessionSecret;
+    private final SeatQueryInPort seatQueryInPort;
+    private final CoreProperties coreProperties;
 
     @GetMapping("/seats")
-    public Mono<Map<String, Object>> getSeats(
-            @RequestHeader("Authorization") String authorization,
-            @RequestParam String eventId,
-            @RequestParam String scheduleId) {
+    public Mono<CoreSeatResponse> getSeats(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            CoreSeatRequest request,
+            ServerHttpRequest httpRequest) {
 
-        String sessionId = extractSessionId(authorization);
+        String token = resolveSessionToken(authorization, httpRequest);
+        String sessionId = extractSessionId(token);
 
-        return seatQueryUseCase.execute(sessionId, eventId, UUID.fromString(scheduleId))
-                .map(zones -> Map.of(
-                        "eventId", eventId,
-                        "scheduleId", scheduleId,
-                        "zones", (Object) zones,
-                        "serverTimeMs", System.currentTimeMillis()
+        return seatQueryInPort.execute(request.toQuery(sessionId))
+                .map(zones -> CoreSeatResponse.fromResult(
+                        request.eventId(),
+                        request.scheduleId(),
+                        zones
                 ));
     }
 
-    private String extractSessionId(String authorization) {
-        String token = authorization.replace("Bearer ", "");
-        String payload = HmacSigner.verifyAndExtract(token, sessionSecret);
+    private String extractSessionId(String token) {
+        String payload = HmacSigner.verifyAndExtract(token, coreProperties.session().secret());
         if (payload == null) {
             throw new BusinessException(ErrorCode.SESSION_TOKEN_INVALID);
         }
         String[] claims = TokenFormat.splitClaims(payload);
         return claims[0]; // sessionId
+    }
+
+    private String resolveSessionToken(String authorization, ServerHttpRequest request) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return authorization.replace("Bearer ", "");
+        }
+        HttpCookie cookie = request.getCookies().getFirst(coreProperties.session().cookieName());
+        if (cookie == null || cookie.getValue().isBlank()) {
+            throw new BusinessException(ErrorCode.SESSION_TOKEN_REQUIRED);
+        }
+        return cookie.getValue();
     }
 }

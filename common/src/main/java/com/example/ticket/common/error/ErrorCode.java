@@ -12,6 +12,7 @@ public enum ErrorCode {
     TOO_EARLY(400, "Event has not started yet"),
     INVALID_WINDOW(400, "Join window has expired"),
     INVALID_REQUEST(400, "Invalid request parameters"),
+    CLIENT_ID_REQUIRED(400, "Client id cookie is required"),
 
     // 401
     ENTER_TOKEN_REQUIRED(401, "Enter token is required"),

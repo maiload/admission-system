@@ -4,18 +4,21 @@ import com.example.ticket.common.error.BusinessException;
 import com.example.ticket.common.error.ErrorCode;
 import com.example.ticket.common.token.HmacSigner;
 import com.example.ticket.common.util.TokenFormat;
-import com.example.ticket.core.application.command.ConfirmHoldUseCase;
-import com.example.ticket.core.application.command.CreateHoldUseCase;
-import com.example.ticket.core.application.dto.command.ConfirmResult;
-import com.example.ticket.core.application.dto.command.HoldResult;
+import com.example.ticket.core.application.port.in.ConfirmHoldInPort;
+import com.example.ticket.core.application.port.in.CreateHoldInPort;
+import com.example.ticket.core.adapter.in.web.request.CoreHoldRequest;
+import com.example.ticket.core.adapter.in.web.response.CoreConfirmResponse;
+import com.example.ticket.core.adapter.in.web.response.CoreHoldResponse;
+import com.example.ticket.core.application.dto.command.ConfirmHoldCommand;
+import com.example.ticket.core.config.CoreProperties;
 import com.example.ticket.core.application.port.out.SessionPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,39 +26,40 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CoreHoldController {
 
-    private final CreateHoldUseCase createHoldUseCase;
-    private final ConfirmHoldUseCase confirmHoldUseCase;
+    private final CreateHoldInPort createHoldInPort;
+    private final ConfirmHoldInPort confirmHoldInPort;
     private final SessionPort sessionPort;
-
-    @Value("${core.session.secret}")
-    private String sessionSecret;
+    private final CoreProperties coreProperties;
 
     @PostMapping("/holds")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<HoldResult> createHold(
-            @RequestHeader("Authorization") String authorization,
-            @RequestBody Map<String, String> body) {
+    public Mono<CoreHoldResponse> createHold(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody CoreHoldRequest request,
+            ServerHttpRequest httpRequest) {
 
-        String[] sessionInfo = extractSessionInfo(authorization);
+        String token = resolveSessionToken(authorization, httpRequest);
+        String[] sessionInfo = extractSessionInfo(token);
         String sessionId = sessionInfo[0];
-        String eventId = body.get("eventId");
-        String scheduleId = body.get("scheduleId");
-        UUID seatId = UUID.fromString(body.get("seatId"));
-
+        String eventId = request.eventId();
+        String scheduleId = request.scheduleId();
         return sessionPort.validateSession(eventId, scheduleId, sessionId)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorCode.SESSION_TOKEN_INVALID)))
                 .flatMap(clientId ->
                         sessionPort.refreshSession(eventId, scheduleId, sessionId)
-                                .then(createHoldUseCase.execute(clientId, UUID.fromString(scheduleId), seatId))
+                                .then(createHoldInPort.execute(request.toCommand(clientId)))
+                                .map(CoreHoldResponse::fromResult)
                 );
     }
 
     @PostMapping("/holds/{holdId}/confirm")
-    public Mono<ConfirmResult> confirmHold(
-            @RequestHeader("Authorization") String authorization,
-            @PathVariable UUID holdId) {
+    public Mono<CoreConfirmResponse> confirmHold(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable UUID holdId,
+            ServerHttpRequest httpRequest) {
 
-        String[] sessionInfo = extractSessionInfo(authorization);
+        String token = resolveSessionToken(authorization, httpRequest);
+        String[] sessionInfo = extractSessionInfo(token);
         String sessionId = sessionInfo[0];
         String eventId = sessionInfo[1];
         String scheduleId = sessionInfo[2];
@@ -63,17 +67,29 @@ public class CoreHoldController {
         return sessionPort.validateSession(eventId, scheduleId, sessionId)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorCode.SESSION_TOKEN_INVALID)))
                 .flatMap(clientId ->
-                        confirmHoldUseCase.execute(clientId, holdId, scheduleId, sessionId)
+                        confirmHoldInPort.execute(new ConfirmHoldCommand(
+                                clientId, holdId, scheduleId, sessionId))
+                                .map(CoreConfirmResponse::fromResult)
                 );
     }
 
-    private String[] extractSessionInfo(String authorization) {
-        String token = authorization.replace("Bearer ", "");
-        String payload = HmacSigner.verifyAndExtract(token, sessionSecret);
+    private String[] extractSessionInfo(String token) {
+        String payload = HmacSigner.verifyAndExtract(token, coreProperties.session().secret());
         if (payload == null) {
             throw new BusinessException(ErrorCode.SESSION_TOKEN_INVALID);
         }
         return TokenFormat.splitClaims(payload);
         // [0]=sessionId, [1]=eventId, [2]=scheduleId, [3]=expMs
+    }
+
+    private String resolveSessionToken(String authorization, ServerHttpRequest request) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return authorization.replace("Bearer ", "");
+        }
+        HttpCookie cookie = request.getCookies().getFirst(coreProperties.session().cookieName());
+        if (cookie == null || cookie.getValue().isBlank()) {
+            throw new BusinessException(ErrorCode.SESSION_TOKEN_REQUIRED);
+        }
+        return cookie.getValue();
     }
 }

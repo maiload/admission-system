@@ -10,4 +10,6 @@ public interface ReservationRepositoryPort {
     Mono<Reservation> save(Reservation reservation);
 
     Mono<Reservation> findByScheduleAndSeat(UUID scheduleId, UUID seatId);
+
+    Mono<Long> countByScheduleAndClient(UUID scheduleId, String clientId);
 }

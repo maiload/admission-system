@@ -7,10 +7,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-/**
- * HMAC-SHA256 signing and verification utility.
- * Used for syncToken, enterToken, coreSessionToken.
- */
 public final class HmacSigner {
 
     private static final String ALGORITHM = "HmacSHA256";
@@ -20,30 +16,18 @@ public final class HmacSigner {
     private HmacSigner() {
     }
 
-    /**
-     * Sign a payload with the given secret.
-     *
-     * @return base64url-encoded HMAC signature
-     */
     public static String sign(String payload, String secret) {
         byte[] mac = computeMac(payload.getBytes(StandardCharsets.UTF_8), secret);
         return ENCODER.encodeToString(mac);
     }
 
-    /**
-     * Create a signed token: payload.signature
-     */
     public static String createToken(String payload, String secret) {
         String encoded = ENCODER.encodeToString(payload.getBytes(StandardCharsets.UTF_8));
         String sig = sign(payload, secret);
         return encoded + "." + sig;
     }
 
-    /**
-     * Verify and extract payload from a signed token.
-     *
-     * @return the original payload, or null if verification fails
-     */
+
     public static String verifyAndExtract(String token, String secret) {
         int dotIndex = token.indexOf('.');
         if (dotIndex < 0) {

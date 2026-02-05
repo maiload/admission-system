@@ -64,6 +64,15 @@ public class R2dbcHoldRepository implements HoldRepositoryPort {
     }
 
     @Override
+    public Mono<Long> countByScheduleAndClient(UUID scheduleId, String clientId) {
+        return db.sql("SELECT COUNT(*) AS cnt FROM holds WHERE schedule_id = :scheduleId AND client_id = :clientId")
+                .bind("scheduleId", scheduleId)
+                .bind("clientId", clientId)
+                .map(row -> row.get("cnt", Long.class))
+                .first();
+    }
+
+    @Override
     public Mono<Void> deleteById(UUID holdId) {
         return db.sql("DELETE FROM holds WHERE id = :id")
                 .bind("id", holdId)

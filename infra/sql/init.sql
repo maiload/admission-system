@@ -43,8 +43,7 @@ CREATE TABLE holds (
     expires_at      TIMESTAMPTZ  NOT NULL,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
-    UNIQUE (schedule_id, seat_id),
-    UNIQUE (schedule_id, client_id)
+    UNIQUE (schedule_id, seat_id)
 );
 
 CREATE INDEX idx_holds_expires ON holds(expires_at)

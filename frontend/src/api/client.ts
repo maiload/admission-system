@@ -81,6 +81,7 @@ export async function enter(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${enterToken}`,
     },
+    credentials: 'include',
     body: JSON.stringify({ eventId, scheduleId }),
   });
   if (!res.ok) throw new Error(`enter failed: ${res.status}`);
@@ -90,12 +91,11 @@ export async function enter(
 export async function fetchSeats(
   eventId: string,
   scheduleId: string,
-  coreSessionToken: string,
 ): Promise<Seat[]> {
   const res = await fetch(
     `${CORE_BASE}/seats?eventId=${eventId}&scheduleId=${scheduleId}`,
     {
-      headers: { Authorization: `Bearer ${coreSessionToken}` },
+      credentials: 'include',
     },
   );
   if (!res.ok) throw new Error(`seats failed: ${res.status}`);
@@ -115,15 +115,14 @@ export async function holdSeats(
   eventId: string,
   scheduleId: string,
   seatIds: string[],
-  coreSessionToken: string,
 ): Promise<HoldResponse> {
   // Backend accepts single seatId at POST /core/holds
   const res = await fetch(`${CORE_BASE}/holds`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${coreSessionToken}`,
     },
+    credentials: 'include',
     body: JSON.stringify({ eventId, scheduleId, seatId: seatIds[0] }),
   });
   if (!res.ok) throw new Error(`hold failed: ${res.status}`);
@@ -137,15 +136,12 @@ export async function holdSeats(
 
 export async function confirmBooking(
   holdId: string,
-  coreSessionToken: string,
 ): Promise<ConfirmResponse> {
   // Backend: POST /core/holds/{holdId}/confirm
   const res = await fetch(`${CORE_BASE}/holds/${holdId}/confirm`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${coreSessionToken}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
   });
   if (!res.ok) throw new Error(`confirm failed: ${res.status}`);
   const data = await res.json();

@@ -12,8 +12,8 @@ public class RedisSoldOutQuery implements SoldOutQueryPort {
     private final ReactiveRedisTemplate<String, String> redisTemplate;
 
     @Override
-    public Mono<Boolean> isSoldOut(String eventId, String scheduleId) {
-        String key = RedisKeyBuilder.soldOut(eventId, scheduleId);
+    public Mono<Boolean> isSoldOut(Query query) {
+        String key = RedisKeyBuilder.soldOut(query.eventId(), query.scheduleId());
         return redisTemplate.hasKey(key);
     }
 }

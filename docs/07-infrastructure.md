@@ -4,9 +4,8 @@
 
 ```yaml
 services:
-  # --- Load Balancers ---
-  haproxy-gate:       # Queue Gate LB
-  haproxy-core:       # Ticketing Core LB
+  # --- Load Balancer ---
+  haproxy:            # Single HAProxy (gate/core frontends)
 
   # --- Application ---
   queue-gate-1:       # Gate instance 1
@@ -34,8 +33,9 @@ services:
 
 | Service | Internal Port | External Port | Description |
 |---------|--------------|---------------|-------------|
-| haproxy-gate | 8080 | 8080 | Gate LB |
-| haproxy-core | 8081 | 8081 | Core LB |
+| haproxy | 8010 | 8010 | Gate LB (frontend) |
+| haproxy | 8030 | 8030 | Core LB (frontend) |
+| haproxy | 9000 | 9000 | HAProxy stats |
 | queue-gate-1 | 8010 | - | Gate instance |
 | queue-gate-2 | 8010 | - | Gate instance |
 | admission-worker-1 | 8020 | - | Worker (내부 관리용) |
@@ -62,12 +62,12 @@ services:
 ┌─────────────────────────────────────────────────────┐
 │                     app-net                          │
 │                                                     │
-│  ┌──────────────┐          ┌──────────────┐         │
-│  │ haproxy-gate │          │ haproxy-core │         │
-│  │    :8080     │          │    :8081     │         │
-│  └──┬───────┬───┘          └──┬───────┬───┘         │
-│     │       │                 │       │             │
-│     ▼       ▼                 ▼       ▼             │
+│                 ┌──────────────┐                    │
+│                 │  haproxy     │                    │
+│                 │ :8010/:8030  │                    │
+│                 └──┬───────┬───┘                    │
+│                    │       │                        │
+│                    ▼       ▼                        │
 │  ┌──────┐ ┌──────┐      ┌──────┐ ┌──────┐          │
 │  │gate-1│ │gate-2│      │core-1│ │core-2│          │
 │  │:8010 │ │:8010 │      │:8030 │ │:8030 │          │
@@ -100,7 +100,7 @@ services:
 
 ## 7.4 HAProxy Configuration
 
-### Gate LB (haproxy-gate.cfg)
+### Single HAProxy (haproxy.cfg)
 
 ```
 global
@@ -109,44 +109,33 @@ global
 defaults
     mode http
     timeout connect 5s
-    timeout client  300s    # SSE 장기 연결 허용
-    timeout server  300s
-    timeout tunnel  300s    # WebSocket/SSE tunnel
-
-frontend gate_front
-    bind *:8080
-    default_backend gate_back
-
-backend gate_back
-    balance leastconn       # SSE 장기 연결에 유리
-    option httpchk GET /actuator/health
-    http-check expect status 200
-    server gate1 queue-gate-1:8010 check inter 3s fall 3 rise 2
-    server gate2 queue-gate-2:8010 check inter 3s fall 3 rise 2
-```
-
-### Core LB (haproxy-core.cfg)
-
-```
-global
-    maxconn 20000
-
-defaults
-    mode http
-    timeout connect 5s
     timeout client  60s
     timeout server  60s
+    timeout tunnel  300s    # SSE tunnel
 
-frontend core_front
-    bind *:8081
-    default_backend core_back
+frontend ft_gate
+    bind *:8010
+    timeout client 300s     # SSE 장기 연결 허용
+    default_backend bk_gate
 
-backend core_back
+backend bk_gate
+    balance leastconn       # SSE 장기 연결에 유리
+    timeout server 300s
+    option httpchk GET /actuator/health
+    http-check expect status 200
+    server gate1 queue-gate-1:8010 check inter 5s fall 3 rise 2
+    server gate2 queue-gate-2:8010 check inter 5s fall 3 rise 2
+
+frontend ft_core
+    bind *:8030
+    default_backend bk_core
+
+backend bk_core
     balance leastconn
     option httpchk GET /actuator/health
     http-check expect status 200
-    server core1 ticketing-core-1:8030 check inter 3s fall 3 rise 2
-    server core2 ticketing-core-2:8030 check inter 3s fall 3 rise 2
+    server core1 ticketing-core-1:8030 check inter 5s fall 3 rise 2
+    server core2 ticketing-core-2:8030 check inter 5s fall 3 rise 2
 ```
 
 **Key Decisions**
@@ -156,7 +145,7 @@ backend core_back
 | Algorithm | leastconn | SSE 장기 연결이 특정 서버에 몰리지 않도록 |
 | Health check | /actuator/health | Spring Boot Actuator 기본 엔드포인트 |
 | Gate timeout | 300s | SSE 연결 유지 (5분) |
-| Core timeout | 60s | 일반 API 요청 (홀드 TTL과 동일) |
+| Core timeout | 60s | 일반 API 요청 |
 
 ## 7.5 Redis Cluster Setup
 

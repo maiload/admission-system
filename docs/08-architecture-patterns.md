@@ -18,7 +18,7 @@ DDD/CQRS는 ticketing-core에만 적용하고, 나머지 모듈은 필요한 만
 {module}/
 ├── domain/           # 엔티티, VO, 도메인 서비스, 상태머신, 불변식
 │                     # 프레임워크 의존 ZERO
-├── application/      # UseCase, Port(인터페이스), DTO
+├── application/      # Inbound Port/Service, Port(인터페이스), DTO
 │                     # 프레임워크 의존 ZERO
 ├── adapter/
 │   ├── in/           # Web Controller, SSE Handler, Scheduler
@@ -54,21 +54,21 @@ queue-gate/src/main/java/com/example/ticket/gate/
 │   └── QueueStatus.java              # enum: WAITING, ADMISSION_GRANTED, EXPIRED, SOLD_OUT
 │
 ├── application/
-│   ├── usecase/
-│   │   ├── SyncUseCase.java          # /gate/sync 처리
-│   │   ├── JoinQueueUseCase.java     # /gate/join 처리
-│   │   └── StreamQueueUseCase.java   # /gate/stream SSE 처리
 │   ├── port/
 │   │   ├── in/
-│   │   │   ├── SyncCommand.java      # sync 입력 DTO
-│   │   │   ├── JoinCommand.java      # join 입력 DTO
-│   │   │   └── StreamQuery.java      # stream 입력 DTO
+│   │   │   ├── SyncInPort.java           # /gate/sync 처리
+│   │   │   ├── JoinQueueInPort.java      # /gate/join 처리
+│   │   │   └── StreamQueueInPort.java    # /gate/stream SSE 처리
 │   │   └── out/
-│   │       ├── QueueRepositoryPort.java    # Redis ZSET/HASH 추상화
-│   │       ├── SoldOutQueryPort.java       # soldout 플래그 조회
-│   │       ├── TokenSignerPort.java        # HMAC 서명/검증
-│   │       ├── ClockPort.java              # 현재 시간 추상화
-│   │       └── IdGeneratorPort.java        # UUID 생성 추상화
+│   │       ├── QueueRepositoryPort.java  # Redis ZSET/HASH 추상화
+│   │       ├── SoldOutQueryPort.java     # soldout 플래그 조회
+│   │       ├── TokenSignerPort.java      # HMAC 서명/검증
+│   │       ├── ClockPort.java            # 현재 시간 추상화
+│   │       └── IdGeneratorPort.java      # UUID 생성 추상화
+│   ├── service/
+│   │   ├── SyncService.java              # SyncInPort 구현
+│   │   ├── JoinQueueService.java         # JoinQueueInPort 구현
+│   │   └── StreamQueueService.java       # StreamQueueInPort 구현
 │   └── dto/
 │       ├── SyncResult.java
 │       ├── JoinResult.java
@@ -77,9 +77,7 @@ queue-gate/src/main/java/com/example/ticket/gate/
 ├── adapter/
 │   ├── in/
 │   │   └── web/
-│   │       ├── GateSyncController.java
-│   │       ├── GateJoinController.java
-│   │       └── GateStreamController.java   # SSE endpoint
+│   │       └── GateController.java         # /gate/* endpoints
 │   └── out/
 │       ├── redis/
 │       │   ├── RedisQueueRepository.java   # QueueRepositoryPort 구현 (Lua 호출 포함)
@@ -94,12 +92,12 @@ queue-gate/src/main/java/com/example/ticket/gate/
     └── GateConfig.java                     # Bean 조립, 설정값 바인딩
 ```
 
-### UseCase 흐름
+### Inbound Port 흐름
 
-**SyncUseCase**
+**SyncInPort (SyncService)**
 ```
 Input:  eventId, scheduleId
-Output: SyncResult(serverTimeMs, startAtMs, syncToken, windowMs)
+Output: SyncResult(serverTimeMs, startAtMs, syncToken)
 
 1. ClockPort.nowMs()로 서버 시간 획득
 2. 스케줄 정보에서 startAtMs 조회 (Redis active_schedules)
@@ -107,9 +105,9 @@ Output: SyncResult(serverTimeMs, startAtMs, syncToken, windowMs)
 4. SyncResult 반환
 ```
 
-**JoinQueueUseCase**
+**JoinQueueInPort (JoinQueueService)**
 ```
-Input:  JoinCommand(eventId, scheduleId, syncToken, clientId, receivedAtMs)
+Input:  eventId, scheduleId, syncToken, clientId
 Output: JoinResult(queueToken, estimatedRank, sseUrl)
 
 1. TokenSignerPort로 syncToken 검증
@@ -120,9 +118,9 @@ Output: JoinResult(queueToken, estimatedRank, sseUrl)
 6. JoinResult 반환
 ```
 
-**StreamQueueUseCase**
+**StreamQueueInPort (StreamQueueService)**
 ```
-Input:  StreamQuery(queueToken)
+Input:  queueToken
 Output: Flux<QueueProgressDto>
 
 1. 1초 interval Flux 생성
@@ -251,21 +249,25 @@ ticketing-core/src/main/java/com/example/ticket/core/
 │       └── SeatAvailabilityService.java  # 매진 판단 도메인 서비스
 │
 ├── application/
-│   ├── command/                        # Write side (CQRS)
-│   │   ├── EnterCoreUseCase.java      # enter_token → coreSession 핸드셰이크
-│   │   ├── CreateHoldUseCase.java     # 좌석 홀드 생성
-│   │   └── ConfirmHoldUseCase.java    # 홀드 확정 → 예약 생성
-│   ├── query/                         # Read side (CQRS)
-│   │   └── SeatQueryUseCase.java      # 좌석 목록 조회 (zone별 그룹핑)
 │   ├── port/
+│   │   ├── in/
+│   │   │   ├── EnterCoreInPort.java       # enter_token → coreSession 핸드셰이크
+│   │   │   ├── CreateHoldInPort.java      # 좌석 홀드 생성
+│   │   │   ├── ConfirmHoldInPort.java     # 홀드 확정 → 예약 생성
+│   │   │   └── SeatQueryInPort.java       # 좌석 목록 조회 (zone별 그룹핑)
 │   │   └── out/
-│   │       ├── HoldRepositoryPort.java       # Hold CRUD (write)
+│   │       ├── HoldRepositoryPort.java        # Hold CRUD (write)
 │   │       ├── ReservationRepositoryPort.java # Reservation INSERT (write)
-│   │       ├── SeatQueryPort.java            # 좌석 조회 (read, 조인 포함)
-│   │       ├── SessionPort.java              # Redis core session + active SET
-│   │       ├── SoldOutPort.java              # Redis soldout 플래그 R/W
+│   │       ├── SeatQueryPort.java             # 좌석 조회 (read, 조인 포함)
+│   │       ├── SessionPort.java               # Redis core session + active SET
+│   │       ├── SoldOutPort.java               # Redis soldout 플래그 R/W
 │   │       ├── ClockPort.java
 │   │       └── IdGeneratorPort.java
+│   ├── service/
+│   │   ├── EnterCoreService.java        # EnterCoreInPort 구현
+│   │   ├── CreateHoldService.java       # CreateHoldInPort 구현
+│   │   ├── ConfirmHoldService.java      # ConfirmHoldInPort 구현
+│   │   └── SeatQueryService.java        # SeatQueryInPort 구현
 │   └── dto/
 │       ├── command/
 │       │   ├── EnterResult.java
@@ -335,9 +337,9 @@ public class Hold {
 }
 ```
 
-### UseCase 흐름
+### Inbound Port 흐름
 
-**CreateHoldUseCase**
+**CreateHoldInPort (CreateHoldService)**
 ```
 1. SessionPort로 coreSessionToken 검증 → clientId 획득
 2. SessionPort로 TTL 연장 (슬라이딩)
@@ -351,7 +353,7 @@ public class Hold {
 7. HoldResult 반환
 ```
 
-**ConfirmHoldUseCase**
+**ConfirmHoldInPort (ConfirmHoldService)**
 ```
 1. SessionPort로 coreSessionToken 검증 → clientId 획득
 2. HoldRepositoryPort.findById(holdId)
@@ -365,7 +367,7 @@ public class Hold {
 8. ConfirmResult 반환
 ```
 
-**SeatQueryUseCase (Read side)**
+**SeatQueryInPort (SeatQueryService)**
 ```
 1. SessionPort로 coreSessionToken 검증
 2. SessionPort로 TTL 연장
@@ -430,7 +432,7 @@ common만 공유하고, 런타임 연결은 Redis 토큰으로.
 ### 의존 흐름 (각 모듈 내부)
 
 ```
-adapter/in  →  application (UseCase)  →  domain
+adapter/in  →  application (InPort/Service)  →  domain
                     │
                     ▼
               application (Port)

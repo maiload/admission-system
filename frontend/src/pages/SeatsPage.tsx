@@ -8,16 +8,17 @@ export default function SeatsPage() {
   const navigate = useNavigate();
   const schedule = useBookingStore((s) => s.schedule);
   const enterToken = useBookingStore((s) => s.enterToken);
-  const coreSessionToken = useBookingStore((s) => s.coreSessionToken);
-  const setCoreSessionToken = useBookingStore((s) => s.setCoreSessionToken);
   const setHoldId = useBookingStore((s) => s.setHoldId);
   const setExpiresAt = useBookingStore((s) => s.setExpiresAt);
+  const setSelectedSeatLabels = useBookingStore((s) => s.setSelectedSeatLabels);
 
   const [seats, setSeats] = useState<Seat[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [holding, setHolding] = useState(false);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(0);
+  const ROWS_PER_PAGE = 20;
 
   // enter + fetch seats
   useEffect(() => {
@@ -28,13 +29,8 @@ export default function SeatsPage() {
 
     (async () => {
       try {
-        let token = coreSessionToken;
-        if (!token) {
-          const res = await enter(schedule.eventId, schedule.scheduleId, enterToken);
-          token = res.coreSessionToken;
-          setCoreSessionToken(token);
-        }
-        const seatList = await fetchSeats(schedule.eventId, schedule.scheduleId, token);
+        await enter(schedule.eventId, schedule.scheduleId, enterToken);
+        const seatList = await fetchSeats(schedule.eventId, schedule.scheduleId);
         setSeats(seatList);
       } catch {
         setError('좌석 정보를 불러오는 데 실패했습니다.');
@@ -42,7 +38,7 @@ export default function SeatsPage() {
         setLoading(false);
       }
     })();
-  }, [schedule, enterToken, coreSessionToken, setCoreSessionToken, navigate]);
+  }, [schedule, enterToken, navigate]);
 
   const toggleSeat = (seatId: string) => {
     setSelected((prev) => {
@@ -60,8 +56,7 @@ export default function SeatsPage() {
     if (!schedule || selected.size === 0) return;
     setHolding(true);
     try {
-      const token = useBookingStore.getState().coreSessionToken;
-      const res = await holdSeats(schedule.eventId, schedule.scheduleId, [...selected], token);
+      const res = await holdSeats(schedule.eventId, schedule.scheduleId, [...selected]);
       setHoldId(res.holdId);
       setExpiresAt(res.expiresAt);
       // store selected seat IDs
@@ -71,6 +66,10 @@ export default function SeatsPage() {
           store.toggleSeat(id);
         }
       });
+      const labels = [...selected]
+        .map((id) => seats.find((s) => s.seatId === id)?.label)
+        .filter((v): v is string => Boolean(v));
+      setSelectedSeatLabels(labels);
       navigate('/confirm', { replace: true });
     } catch {
       setError('좌석 선점에 실패했습니다. 다시 시도해주세요.');
@@ -85,6 +84,8 @@ export default function SeatsPage() {
   for (let i = 0; i < seats.length; i += 4) {
     seatRows.push(seats.slice(i, i + 4));
   }
+  const totalPages = Math.max(1, Math.ceil(seatRows.length / ROWS_PER_PAGE));
+  const pagedRows = seatRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
   const getSeatColor = (seat: Seat) => {
     if (selected.has(seat.seatId)) return 'bg-ktx-red text-white border-ktx-red';
@@ -137,7 +138,7 @@ export default function SeatsPage() {
           </div>
 
           {/* Train car */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 w-full">
             {/* Car header */}
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <span className="text-sm font-bold text-ktx-navy">1호차 (일반실)</span>
@@ -145,10 +146,12 @@ export default function SeatsPage() {
             </div>
 
             {/* Seat grid */}
-            <div className="space-y-2">
-              {seatRows.map((row, ri) => (
-                <div key={ri} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 w-6 text-right">{ri + 1}</span>
+            <div className="space-y-2 w-full">
+              {pagedRows.map((row, ri) => (
+                <div key={ri} className="flex items-center gap-4 w-full justify-center">
+                  <span className="text-xs text-gray-400 w-8 text-right">
+                    {page * ROWS_PER_PAGE + ri + 1}
+                  </span>
                   {/* Left pair */}
                   <div className="flex gap-1">
                     {row.slice(0, 2).map((seat) => (
@@ -163,7 +166,7 @@ export default function SeatsPage() {
                     ))}
                   </div>
                   {/* Aisle */}
-                  <div className="w-8" />
+                  <div className="w-16" />
                   {/* Right pair */}
                   <div className="flex gap-1">
                     {row.slice(2, 4).map((seat) => (
@@ -179,6 +182,27 @@ export default function SeatsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between mt-6">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                이전
+              </button>
+              <span className="text-xs text-gray-500">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                다음
+              </button>
             </div>
           </div>
 

@@ -9,9 +9,9 @@ import com.example.ticket.admission.application.engine.AdmissionEngine;
 import com.example.ticket.admission.application.port.out.ActiveSchedulePort;
 import com.example.ticket.admission.application.port.out.IssuerPort;
 import com.example.ticket.admission.application.port.out.TokenGeneratorPort;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -21,6 +21,7 @@ import java.util.List;
 
 @Configuration
 @EnableScheduling
+@EnableConfigurationProperties(AdmissionProperties.class)
 public class WorkerConfig {
 
     // --- Infrastructure ---
@@ -54,9 +55,10 @@ public class WorkerConfig {
 
     @Bean
     public TokenGeneratorPort tokenGeneratorPort(
-            @Value("${admission.token.secret}") String enterTokenSecret,
-            @Value("${admission.token.ttl-sec}") int enterTtlSec) {
-        return new HmacTokenGenerator(enterTokenSecret, enterTtlSec);
+            AdmissionProperties admissionProperties) {
+        return new HmacTokenGenerator(
+                admissionProperties.token().secret(),
+                admissionProperties.token().ttlSec());
     }
 
     // --- Engine ---
@@ -66,12 +68,13 @@ public class WorkerConfig {
             ActiveSchedulePort activeSchedulePort,
             IssuerPort issuerPort,
             TokenGeneratorPort tokenGeneratorPort,
-            @Value("${admission.worker.max-batch}") int maxBatch,
-            @Value("${admission.worker.rate-cap}") int rateCap,
-            @Value("${admission.worker.concurrency-cap}") int concurrencyCap,
-            @Value("${admission.token.ttl-sec}") int enterTtlSec,
-            @Value("${gate.queue.state-ttl-sec:1800}") int qstateTtlSec,
-            @Value("${admission.token.rate-counter-ttl-sec}") int rateTtlSec) {
+            AdmissionProperties admissionProperties) {
+        int maxBatch = admissionProperties.worker().maxBatch();
+        int rateCap = admissionProperties.worker().rateCap();
+        int concurrencyCap = admissionProperties.worker().concurrencyCap();
+        int enterTtlSec = admissionProperties.token().ttlSec();
+        int qstateTtlSec = admissionProperties.queue().stateTtlSec();
+        int rateTtlSec = admissionProperties.token().rateCounterTtlSec();
         return new AdmissionEngine(
                 activeSchedulePort, issuerPort, tokenGeneratorPort,
                 maxBatch, rateCap, concurrencyCap,

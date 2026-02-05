@@ -1,56 +1,54 @@
 package com.example.ticket.gate.domain;
 
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-
-/**
- * Estimates queue rank from click-timing delta.
- * Uses non-linear bucketing: earlier clicks get better estimated ranks.
- * Pure domain logic — no framework dependencies.
- */
 public final class RankEstimator {
-
-    private static final List<RankBucket> BUCKETS = List.of(
-            new RankBucket(0, 20, 1_000),
-            new RankBucket(20, 50, 4_000),
-            new RankBucket(50, 100, 5_000),
-            new RankBucket(100, 200, 20_000),
-            new RankBucket(200, 500, 70_000),
-            new RankBucket(500, 2_000, 200_000),
-            new RankBucket(2_000, 10_000, 700_000)
-    );
-
+    private static final int EASE_OUT_POW = 4;
     private static final long MAX_RANK = 1_000_000;
+    private static final long RANK_0_5S = 1_000;
+    private static final long RANK_1S = 10_000;
+    private static final long RANK_10S = 100_000;
 
     private RankEstimator() {
     }
 
-    /**
-     * Estimate rank from delta (receivedAtMs - startAtMs).
-     *
-     * @param deltaMs milliseconds after event start
-     * @return estimated rank (1-based)
-     */
     public static long estimate(long deltaMs) {
         if (deltaMs < 0) {
             return 1;
         }
 
-        for (RankBucket bucket : BUCKETS) {
-            if (bucket.contains(deltaMs)) {
-                return bucket.estimatedRank();
-            }
+        double seconds = deltaMs / 1000.0;
+
+        if (seconds <= 0.5) {
+            double t = seconds / 0.5;
+            return interpolateRank(1, RANK_0_5S, t);
+        }
+
+        if (seconds <= 1.0) {
+            double t = (seconds - 0.5) / 0.5;
+            return interpolateRank(RANK_0_5S, RANK_1S, t);
+        }
+
+        if (seconds <= 10.0) {
+            return Math.min(RANK_10S, (long) Math.floor(seconds * RANK_1S));
         }
 
         return MAX_RANK;
     }
 
-    /**
-     * Compute ZSET score: rank * 10 + tieBreaker (0~9).
-     * Tie-breaker adds randomness within same rank bucket.
-     */
-    public static double computeScore(long estimatedRank) {
-        int tieBreaker = ThreadLocalRandom.current().nextInt(10);
-        return estimatedRank * 10.0 + tieBreaker;
+    private static long interpolateRank(long start, long end, double t) {
+        double eased = easeOutPow4(clamp01(t));
+        double value = start + (end - start) * eased;
+        return (long) Math.floor(value);
+    }
+
+    private static double easeOutPow4(double t) {
+        double inv = 1.0 - t;
+        return 1.0 - Math.pow(inv, EASE_OUT_POW);
+    }
+
+    private static double clamp01(double t) {
+        if (t < 0.0) {
+            return 0.0;
+        }
+        return Math.min(t, 1.0);
     }
 }
