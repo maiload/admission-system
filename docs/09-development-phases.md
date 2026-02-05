@@ -171,7 +171,6 @@ DDD + Lightweight CQRS 적용.
 - Gate 단독 기동 가능 (Docker: Redis)
 - curl로 sync → join → SSE 연결 → WAITING 상태 수신
 - 중복 join 멱등성 확인
-- delta < 0 → 400 TOO_EARLY 확인
 
 ---
 
@@ -368,3 +367,4 @@ Phase 3    Phase 4    Phase 5
 
 **참고:** Phase 3, 4는 병렬 진행 가능하나, Phase 5의 E2E 검증은 Phase 4 이후에 가능.
 Phase 6은 Phase 3~5 모두 완료 후 진행.
+- delta < 0 → 400 TOO_EARLY 확인

@@ -12,7 +12,6 @@ spring:
 gate:
   sync:
     token-secret: ${SYNC_TOKEN_SECRET:sync-secret-key}
-    join-window-before-ms: 0
     join-window-after-ms: ${GATE_SYNC_JOIN_WINDOW_AFTER_MS:3600000}
     token-ttl-after-start-ms: ${GATE_SYNC_TOKEN_TTL_AFTER_START_MS:3600000}
     simulation:

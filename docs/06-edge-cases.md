@@ -32,7 +32,6 @@
 
 | Case | Trigger | Server Response | Client Action |
 |------|---------|----------------|---------------|
-| E1-1: startAt 전에 join 시도 (delta < 0) | 버튼 비활성 우회/자동화 | 400 TOO_EARLY | "아직 오픈 전입니다" 표시 |
 | E1-2: startAt + 10초 이후 join | 늦은 클릭 | 400 INVALID_WINDOW | "접수 시간이 종료되었습니다" 표시 |
 | E1-3: syncToken 변조/만료 | 토큰 조작 시도 | 400 INVALID_SYNC_TOKEN | sync 재요청 유도 |
 | E1-4: clientId 쿠키 누락 | 쿠키 차단 환경 | /gate/sync에서 발급 | 자동 처리 |
@@ -123,6 +122,7 @@
 | enterToken 탈취 | 1회 사용 (DEL 후 무효). clientId 대조. TTL 120초 |
 | coreSessionToken 탈취 | HMAC 서명 + Redis 검증. TTL 5분. clientId 쿠키 대조 |
 | 대기열 순번 조작 | 서버가 receivedAtMs 기준으로 rank 계산. 클라이언트 입력 불신 |
+| E1-1: startAt 전에 join 시도 (delta < 0) | 버튼 비활성 우회/자동화 | 400 TOO_EARLY | "아직 오픈 전입니다" 표시 |
 | 자동화 봇 (매크로) | delta < 0 → 400 거절. 비선형 버킷으로 극초기 순번 과밀 방지 |
 | 쿠키 공유/변조 | HttpOnly + clientId는 서버 발급. HMAC 토큰에 clientId 바인딩 |
 | DDoS on SSE | HAProxy 연결 수 제한. SSE 주기 1초(과도한 push 방지) |

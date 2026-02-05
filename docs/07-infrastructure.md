@@ -217,7 +217,6 @@ gate:
   sync:
     token-secret: ${SYNC_TOKEN_SECRET}
     window-ms: 5000
-    join-window-before-ms: 2000     # startAt - 2s
     join-window-after-ms: 10000     # startAt + 10s
     token-ttl-after-start-ms: 15000 # startAt + 15s
   queue:

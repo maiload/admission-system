@@ -18,7 +18,7 @@
 |-------------|------|-------------|
 | 400 | `INVALID_SYNC_TOKEN` | syncToken이 유효하지 않음 (변조/만료) |
 | 400 | `TOO_EARLY` | startAt 이전 join 시도 (delta < 0) |
-| 400 | `INVALID_WINDOW` | join 허용 시간대 초과 (startAt + 10s 이후) |
+| 400 | `INVALID_WINDOW` | join 허용 시간대 초과 (startAt 이후 설정된 window 초과) |
 | 400 | `INVALID_REQUEST` | 일반적인 요청 파라미터 오류 |
 | 401 | `ENTER_TOKEN_REQUIRED` | enter_token 누락 |
 | 401 | `SESSION_TOKEN_REQUIRED` | coreSessionToken 누락 |
@@ -70,7 +70,7 @@ eventId | scheduleId | startAtMs | issuedAtMs | nonce(UUID)
 
 **Side Effect**
 
-- `clientId` 쿠키가 없으면 UUID v4로 발급
+- `clientId` 쿠키를 UUID v4로 새로 발급
   - Cookie name: `cid`
   - HttpOnly: true
   - Secure: production only
@@ -100,7 +100,7 @@ eventId | scheduleId | startAtMs | issuedAtMs | nonce(UUID)
 1. syncToken HMAC 검증
 2. `receivedAtMs - startAtMs` = delta 계산
 3. delta < 0 → `400 TOO_EARLY`
-4. delta > 10,000ms → `400 INVALID_WINDOW`
+4. delta > join-window-after-ms → `400 INVALID_WINDOW`
 5. `soldout:{eventId}:{scheduleId}` 존재 → `409 SOLD_OUT`
 6. 중복 join → 기존 queueToken 반환 (멱등)
 

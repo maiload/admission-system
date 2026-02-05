@@ -11,7 +11,6 @@ public record GateProperties(
 ) {
     public record Sync(
             String tokenSecret,
-            long joinWindowBeforeMs,
             long joinWindowAfterMs,
             long tokenTtlAfterStartMs,
             Simulation simulation

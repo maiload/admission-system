@@ -28,7 +28,7 @@ for each major API in the admission system.
 1. `queue-gate` → `GateController` (`/gate/join`)
 2. `JoinQueueInPort.execute(eventId, scheduleId, syncToken, clientId)` → `JoinQueueService`
 3. `TokenSignerPort.verifySyncToken` → `HmacTokenSigner`
-4. window validation (`joinWindowBeforeMs`, `joinWindowAfterMs`)
+4. window validation (`joinWindowAfterMs`)
 5. `SoldOutQueryPort.isSoldOut` → `RedisSoldOutQuery`
 6. `RankEstimator.estimate` (score tie-breaker computed in Lua with seq)
 7. `QueueRepositoryPort.join` → `RedisQueueRepository`

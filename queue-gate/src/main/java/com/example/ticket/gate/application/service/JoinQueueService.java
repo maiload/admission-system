@@ -103,10 +103,8 @@ public class JoinQueueService implements JoinQueueInPort {
     }
 
     private void validateJoinWindowOrError(long deltaMs) {
-        long beforeMs = gateProperties.sync().joinWindowBeforeMs();
         long afterMs = gateProperties.sync().joinWindowAfterMs();
-
-        if (deltaMs < -beforeMs) {
+        if (deltaMs < 0) {
             throw new BusinessException(ErrorCode.TOO_EARLY);
         }
         if (deltaMs > afterMs) {
