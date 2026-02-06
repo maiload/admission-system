@@ -16,11 +16,11 @@ spring:
 core:
   event-id: ${CORE_EVENT_ID:a0000000-0000-0000-0000-000000000001}
   session:
-    secret: ${CORE_SESSION_SECRET:dev-core-secret-key-change-in-production}
+    secret: ${CORE_SESSION_SECRET:core-secret-key}
     ttl-sec: 300
     cookie-name: core_session
   enter-token:
-    secret: ${ENTER_TOKEN_SECRET:dev-enter-secret-key-change-in-production}
+    secret: ${ENTER_TOKEN_SECRET:enter-secret-key}
   hold:
     ttl-sec: 60
     max-per-client: 4

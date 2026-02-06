@@ -1,6 +1,6 @@
 package com.example.ticket.core.application.port.out;
 
-import com.example.ticket.core.domain.reservation.Reservation;
+import com.example.ticket.core.domain.Reservation;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;

@@ -12,16 +12,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class HoldCleanupScheduler {
 
-    private final HoldRepositoryPort holdRepository;
-    private final ClockPort clock;
+    private final HoldRepositoryPort holdRepositoryPort;
+    private final ClockPort clockPort;
 
     @Scheduled(fixedDelayString = "${core.scheduler.hold-cleanup-interval-ms}")
     public void cleanup() {
-        holdRepository.deleteExpired(clock.now())
-                .subscribe(count -> {
-                    if (count > 0) {
-                        log.info("Cleaned up {} expired holds", count);
-                    }
-                });
+        holdRepositoryPort.deleteExpired(clockPort.now())
+                .doOnNext(count -> {
+                    if (count > 0) log.info("Cleaned up {} expired holds", count);
+                })
+                .subscribe();
     }
 }

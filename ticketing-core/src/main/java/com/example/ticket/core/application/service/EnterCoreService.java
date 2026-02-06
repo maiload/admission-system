@@ -3,12 +3,12 @@ package com.example.ticket.core.application.service;
 import com.example.ticket.common.error.BusinessException;
 import com.example.ticket.common.error.ErrorCode;
 import com.example.ticket.common.port.IdGeneratorPort;
-import com.example.ticket.common.token.HmacSigner;
 import com.example.ticket.common.util.TokenFormat;
-import com.example.ticket.core.application.dto.command.EnterCommand;
-import com.example.ticket.core.application.dto.command.EnterResult;
+import com.example.ticket.core.application.port.in.EnterCoreInPort.EnterCommand;
+import com.example.ticket.core.application.port.in.EnterCoreInPort.EnterResult;
 import com.example.ticket.core.application.port.in.EnterCoreInPort;
 import com.example.ticket.core.application.port.out.SessionPort;
+import com.example.ticket.core.application.port.out.TokenSignerPort;
 import com.example.ticket.core.config.CoreProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,49 +18,78 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class EnterCoreService implements EnterCoreInPort {
 
+    private static final int ENTER_TOKEN_CLAIMS_MIN = 4;
+
     private final SessionPort sessionPort;
     private final IdGeneratorPort idGenerator;
     private final CoreProperties coreProperties;
+    private final TokenSignerPort tokenSignerPort;
 
     @Override
     public Mono<EnterResult> execute(EnterCommand command) {
-        // 1. Verify enterToken HMAC
-        String payload = HmacSigner.verifyAndExtract(command.enterToken(), coreProperties.enterToken().secret());
+        return Mono.defer(() -> {
+                    EnterContext ctx = buildContextOrError(command);
+                    return Mono.just(ctx);
+                })
+                .flatMap(this::handshakeAndIssue);
+    }
+
+    private EnterContext buildContextOrError(EnterCommand command) {
+        String payload = tokenSignerPort.verifyEnterToken(command.enterToken());
         if (payload == null) {
-            return Mono.error(new BusinessException(ErrorCode.ENTER_TOKEN_INVALID));
+            throw new BusinessException(ErrorCode.ENTER_TOKEN_INVALID);
         }
 
-        String[] claims = TokenFormat.splitClaims(payload);
-        if (claims.length < 4) {
-            return Mono.error(new BusinessException(ErrorCode.ENTER_TOKEN_INVALID));
-        }
+        EnterClaims claims = parseClaimsOrError(payload);
+        validateTokenMatchesOrError(claims, command);
 
-        String jti = claims[0];
-        String tokenEventId = claims[1];
-        String tokenScheduleId = claims[2];
-
-        // 2. Validate eventId/scheduleId match
-        if (!tokenEventId.equals(command.eventId()) || !tokenScheduleId.equals(command.scheduleId())) {
-            return Mono.error(new BusinessException(ErrorCode.ENTER_TOKEN_INVALID));
-        }
-
-        // 3. Generate sessionId
         String sessionId = idGenerator.generateUuid();
+        int sessionTtlSec = coreProperties.session().ttlSec();
 
-        // 4. Atomic handshake via Lua: DEL enter + SET session + SADD active
-        return sessionPort.handshake(command.eventId(), command.scheduleId(), jti, /* clientId resolved in Lua */ "", sessionId)
+        return new EnterContext(command.eventId(), command.scheduleId(), claims.jti(), sessionId, sessionTtlSec);
+    }
+
+    private Mono<EnterResult> handshakeAndIssue(EnterContext ctx) {
+        return sessionPort.handshake(ctx.toHandshakeCommand())
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorCode.ENTER_TOKEN_INVALID)))
-                .map(clientId -> {
-                    // 5. Create signed coreSessionToken
-                    int sessionTtlSec = coreProperties.session().ttlSec();
-                    String sessionPayload = TokenFormat.joinClaims(
-                            sessionId, command.eventId(), command.scheduleId(),
-                            String.valueOf(System.currentTimeMillis() + sessionTtlSec * 1000L)
-                    );
-                    String coreSessionToken = HmacSigner.createToken(
-                            sessionPayload, coreProperties.session().secret());
+                .map(clientId -> toResult(ctx));
+    }
 
-                    return new EnterResult(coreSessionToken, sessionTtlSec, command.eventId(), command.scheduleId());
-                });
+    private EnterClaims parseClaimsOrError(String payload) {
+        String[] claims = TokenFormat.splitClaims(payload);
+        if (claims.length < ENTER_TOKEN_CLAIMS_MIN) {
+            throw new BusinessException(ErrorCode.ENTER_TOKEN_INVALID);
+        }
+        return new EnterClaims(claims[0], claims[1], claims[2]);
+    }
+
+    private void validateTokenMatchesOrError(EnterClaims claims, EnterCommand command) {
+        if (!claims.eventId().equals(command.eventId()) ||
+                !claims.scheduleId().equals(command.scheduleId())) {
+            throw new BusinessException(ErrorCode.ENTER_TOKEN_INVALID);
+        }
+    }
+
+    private EnterResult toResult(EnterContext ctx) {
+        long expMs = System.currentTimeMillis() + ctx.sessionTtlSec() * 1000L;
+        String sessionPayload = TokenFormat.joinClaims(
+                ctx.sessionId(), ctx.eventId(), ctx.scheduleId(), String.valueOf(expMs)
+        );
+        String coreSessionToken = tokenSignerPort.signSessionToken(sessionPayload);
+        return new EnterResult(coreSessionToken, ctx.sessionTtlSec(), ctx.eventId(), ctx.scheduleId());
+    }
+
+    private record EnterClaims(String jti, String eventId, String scheduleId) {}
+
+    private record EnterContext(
+            String eventId,
+            String scheduleId,
+            String jti,
+            String sessionId,
+            int sessionTtlSec
+    ) {
+        private SessionPort.HandshakeCommand toHandshakeCommand() {
+            return new SessionPort.HandshakeCommand(eventId, scheduleId, jti, sessionId);
+        }
     }
 }

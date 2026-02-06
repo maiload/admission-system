@@ -1,6 +1,6 @@
 package com.example.ticket.core.application.port.out;
 
-import com.example.ticket.core.domain.hold.Hold;
+import com.example.ticket.core.domain.Hold;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;

@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RequiredArgsConstructor
-public class RedisQueueRepository implements QueueRepositoryPort {
+public class RedisQueueAdapter implements QueueRepositoryPort {
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
     private final RedisScript<List> joinScript;

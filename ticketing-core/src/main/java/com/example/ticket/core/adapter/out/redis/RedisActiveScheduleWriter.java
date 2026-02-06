@@ -11,17 +11,17 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class RedisActiveScheduleWriter implements ActiveScheduleWritePort {
 
-    private final ReactiveStringRedisTemplate redis;
+    private final ReactiveStringRedisTemplate redisTemplate;
 
     @Override
     public Mono<Boolean> upsert(String eventId, String scheduleId, long startAtMs) {
         String key = RedisKeyBuilder.activeSchedules();
         String member = eventId + ":" + scheduleId;
-        return redis.opsForZSet().add(key, member, startAtMs);
+        return redisTemplate.opsForZSet().add(key, member, startAtMs);
     }
 
     @Override
     public Mono<Long> clearAll() {
-        return redis.delete(RedisKeyBuilder.activeSchedules());
+        return redisTemplate.delete(RedisKeyBuilder.activeSchedules());
     }
 }

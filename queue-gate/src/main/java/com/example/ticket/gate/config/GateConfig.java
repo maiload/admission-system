@@ -2,7 +2,7 @@ package com.example.ticket.gate.config;
 
 import com.example.ticket.common.port.ClockPort;
 import com.example.ticket.common.port.IdGeneratorPort;
-import com.example.ticket.gate.adapter.out.redis.RedisQueueRepository;
+import com.example.ticket.gate.adapter.out.redis.RedisQueueAdapter;
 import com.example.ticket.gate.adapter.out.redis.RedisScheduleQuery;
 import com.example.ticket.gate.adapter.out.redis.RedisSoldOutQuery;
 import com.example.ticket.gate.adapter.out.token.HmacTokenSigner;
@@ -53,7 +53,7 @@ public class GateConfig {
             ReactiveRedisTemplate<String, String> redisTemplate,
             RedisScript<List> queueJoinScript,
             GateProperties gateProperties) {
-        return new RedisQueueRepository(redisTemplate, queueJoinScript, gateProperties);
+        return new RedisQueueAdapter(redisTemplate, queueJoinScript, gateProperties);
     }
 
     @Bean

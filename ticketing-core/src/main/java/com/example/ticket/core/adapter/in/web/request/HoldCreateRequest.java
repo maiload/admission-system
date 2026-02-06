@@ -1,9 +1,9 @@
 package com.example.ticket.core.adapter.in.web.request;
 
-import com.example.ticket.core.application.dto.command.CreateHoldCommand;
+import com.example.ticket.core.application.port.in.HoldInPort.CreateHoldCommand;
 import java.util.UUID;
 
-public record CoreHoldRequest(
+public record HoldCreateRequest(
         String eventId,
         String scheduleId,
         String seatId

@@ -5,36 +5,31 @@
 -- KEYS[2] = cs:{evt}:{sch}:{sessionId}
 -- KEYS[3] = active:{evt}:{sch}
 --
--- ARGV[1] = clientId
--- ARGV[2] = sessionId
--- ARGV[3] = sessionTtlSec
--- ARGV[4] = hashTag prefix (for old session cleanup / csidx key)
+-- ARGV[1] = sessionId
+-- ARGV[2] = sessionTtlSec
+-- ARGV[3] = hashTag prefix (for old session cleanup / csidx key)
 
 local storedClientId = redis.call('GET', KEYS[1])
 if not storedClientId then
     return 'INVALID'
 end
 
--- clientId check: if ARGV[1] is empty, use stored value
-local clientId = ARGV[1]
-if clientId == '' then
-    clientId = storedClientId
-end
+local clientId = storedClientId
 
--- Delete enter token (1-time use)
+-- Delete enter token
 redis.call('DEL', KEYS[1])
 
-local csidxKey = 'csidx:' .. ARGV[4] .. ':' .. clientId
+local csidxKey = 'csidx:' .. ARGV[3] .. ':' .. clientId
 
 -- Clean up old session if exists
 local oldSessionId = redis.call('GET', csidxKey)
 if oldSessionId then
-    redis.call('DEL', 'cs:' .. ARGV[4] .. ':' .. oldSessionId)
+    redis.call('DEL', 'cs:' .. ARGV[3] .. ':' .. oldSessionId)
 end
 
 -- Create new session
-redis.call('SET', KEYS[2], clientId, 'EX', tonumber(ARGV[3]))
-redis.call('SET', csidxKey, ARGV[2], 'EX', tonumber(ARGV[3]))
+redis.call('SET', KEYS[2], clientId, 'EX', tonumber(ARGV[2]))
+redis.call('SET', csidxKey, ARGV[1], 'EX', tonumber(ARGV[2]))
 
 -- Add to active set
 redis.call('SADD', KEYS[3], clientId)

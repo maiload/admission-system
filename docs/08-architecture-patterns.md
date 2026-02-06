@@ -80,7 +80,7 @@ queue-gate/src/main/java/com/example/ticket/gate/
 │   │       └── GateController.java         # /gate/* endpoints
 │   └── out/
 │       ├── redis/
-│       │   ├── RedisQueueRepository.java   # QueueRepositoryPort 구현 (Lua 호출 포함)
+│       │   ├── RedisQueueAdapter.java   # QueueRepositoryPort 구현 (Lua 호출 포함)
 │       │   └── RedisSoldOutQuery.java      # SoldOutQueryPort 구현
 │       ├── token/
 │       │   └── HmacTokenSigner.java        # TokenSignerPort 구현
@@ -288,8 +288,8 @@ ticketing-core/src/main/java/com/example/ticket/core/
 │   │       └── ActiveCleanupScheduler.java   # @Scheduled: active SET 정리
 │   └── out/
 │       ├── persistence/
-│       │   ├── R2dbcHoldRepository.java      # HoldRepositoryPort 구현
-│       │   ├── R2dbcReservationRepository.java
+│       │   ├── R2dbcHoldAdapter.java      # HoldRepositoryPort 구현
+│       │   ├── R2dbcReservationAdapter.java
 │       │   └── R2dbcSeatQuery.java           # SeatQueryPort 구현 (조인 쿼리)
 │       ├── redis/
 │       │   ├── RedisSessionAdapter.java      # SessionPort 구현 (Lua 포함)

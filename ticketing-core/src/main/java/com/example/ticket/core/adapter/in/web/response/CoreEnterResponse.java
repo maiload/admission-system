@@ -1,6 +1,6 @@
 package com.example.ticket.core.adapter.in.web.response;
 
-import com.example.ticket.core.application.dto.command.EnterResult;
+import com.example.ticket.core.application.port.in.EnterCoreInPort.EnterResult;
 
 public record CoreEnterResponse(
         int sessionTtlSec,
@@ -9,7 +9,7 @@ public record CoreEnterResponse(
 ) {
     public static CoreEnterResponse fromResult(EnterResult result) {
         return new CoreEnterResponse(
-                result.expiresInSec(),
+                result.sessionTtlSec(),
                 result.eventId(),
                 result.scheduleId()
         );

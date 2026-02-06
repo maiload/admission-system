@@ -13,18 +13,18 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class RedisSoldOutAdapter implements SoldOutPort {
 
-    private final ReactiveStringRedisTemplate redis;
+    private final ReactiveStringRedisTemplate redisTemplate;
 
     @Override
     public Mono<Boolean> isSoldOut(String eventId, String scheduleId) {
         String key = RedisKeyBuilder.soldOut(eventId, scheduleId);
-        return redis.hasKey(key);
+        return redisTemplate.hasKey(key);
     }
 
     @Override
     public Mono<Void> markSoldOut(String eventId, String scheduleId, long ttlSeconds) {
         String key = RedisKeyBuilder.soldOut(eventId, scheduleId);
-        return redis.opsForValue()
+        return redisTemplate.opsForValue()
                 .set(key, "1", Duration.ofSeconds(ttlSeconds))
                 .then();
     }

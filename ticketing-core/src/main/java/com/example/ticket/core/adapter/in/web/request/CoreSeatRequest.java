@@ -1,6 +1,6 @@
 package com.example.ticket.core.adapter.in.web.request;
 
-import com.example.ticket.core.application.dto.query.SeatQuery;
+import com.example.ticket.core.application.port.in.SeatQueryInPort.SeatQuery;
 import java.util.UUID;
 
 public record CoreSeatRequest(
@@ -8,6 +8,6 @@ public record CoreSeatRequest(
         String scheduleId
 ) {
     public SeatQuery toQuery(String sessionId) {
-        return new SeatQuery(sessionId, eventId, UUID.fromString(scheduleId));
+        return new SeatQuery(eventId, UUID.fromString(scheduleId), sessionId);
     }
 }

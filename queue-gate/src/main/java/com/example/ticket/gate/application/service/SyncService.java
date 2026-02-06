@@ -7,7 +7,6 @@ import com.example.ticket.common.util.TokenFormat;
 import com.example.ticket.gate.application.port.in.SyncInPort;
 import com.example.ticket.gate.application.port.out.ScheduleQueryPort;
 import com.example.ticket.gate.application.port.out.TokenSignerPort;
-import com.example.ticket.gate.config.GateProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -19,12 +18,10 @@ public class SyncService implements SyncInPort {
     private final ScheduleQueryPort scheduleQueryPort;
     private final TokenSignerPort tokenSignerPort;
     private final ClockPort clock;
-    private final GateProperties gateProperties;
 
     @Override
     public Mono<SyncResult> execute(Sync sync) {
-        var scheduleQuery = new ScheduleQueryPort.Query(sync.eventId(), sync.scheduleId());
-        return scheduleQueryPort.getStartAtMs(scheduleQuery)
+        return scheduleQueryPort.getStartAtMs(toScheduleQuery(sync))
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorCode.EVENT_NOT_OPEN)))
                 .map(startAtMs -> {
                     long serverTimeMs = clock.nowMillis();
@@ -36,5 +33,9 @@ public class SyncService implements SyncInPort {
                     String syncToken = tokenSignerPort.signSyncToken(payload);
                     return new SyncResult(serverTimeMs, startAtMs, syncToken);
                 });
+    }
+
+    private ScheduleQueryPort.Query toScheduleQuery(Sync sync) {
+        return new ScheduleQueryPort.Query(sync.eventId(), sync.scheduleId());
     }
 }

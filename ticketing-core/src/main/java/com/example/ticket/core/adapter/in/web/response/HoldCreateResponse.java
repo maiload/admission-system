@@ -1,21 +1,21 @@
 package com.example.ticket.core.adapter.in.web.response;
 
-import com.example.ticket.core.application.dto.command.HoldResult;
+import com.example.ticket.core.application.port.in.HoldInPort.CreateHoldResult;
 
-public record CoreHoldResponse(
+public record HoldCreateResponse(
         String holdId,
         String scheduleId,
         String seatId,
         int seatNo,
         String zone,
         long expiresAtMs,
-        int holdTtlSec
+    int holdTtlSec
 ) {
-    public static CoreHoldResponse fromResult(HoldResult result) {
-        return new CoreHoldResponse(
-                result.holdId().toString(),
+    public static HoldCreateResponse fromResult(CreateHoldResult result) {
+        return new HoldCreateResponse(
+                result.holdId(),
                 result.scheduleId(),
-                result.seatId().toString(),
+                result.seatId(),
                 result.seatNo(),
                 result.zone(),
                 result.expiresAtMs(),

@@ -1,6 +1,6 @@
 package com.example.ticket.core.adapter.in.web.request;
 
-import com.example.ticket.core.application.dto.command.EnterCommand;
+import com.example.ticket.core.application.port.in.EnterCoreInPort.EnterCommand;
 
 public record CoreEnterRequest(
         String eventId,

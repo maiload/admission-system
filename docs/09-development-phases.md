@@ -101,7 +101,7 @@ DDD + Lightweight CQRS 적용.
   - Query InPort: `SeatQueryInPort`
 
 - [ ] 3-4. Adapter - DB (R2DBC)
-  - `R2dbcHoldRepository`, `R2dbcReservationRepository`, `R2dbcSeatQuery`
+  - `R2dbcHoldAdapter`, `R2dbcReservationAdapter`, `R2dbcSeatQuery`
   - DatabaseClient 기반 쿼리 구현
 
 - [ ] 3-5. Adapter - Redis
@@ -155,14 +155,14 @@ DDD + Lightweight CQRS 적용.
   - `StreamQueueInPort` / `StreamQueueService`
 
 - [ ] 4-4. Adapter - Redis
-  - `RedisQueueRepository` (Queue Join Lua 포함)
+  - `RedisQueueAdapter` (Queue Join Lua 포함)
   - `RedisSoldOutQuery`
 
 - [ ] 4-5. Adapter - Web
   - `GateController` (GET /gate/sync, POST /gate/join, GET /gate/stream, GET /gate/status)
 
 - [ ] 4-6. Lua 스크립트
-  - `queue-join.lua` 파일 작성 + RedisQueueRepository에서 EVAL 호출
+  - `queue-join.lua` 파일 작성 + RedisQueueAdapter에서 EVAL 호출
 
 - [ ] 4-7. syncToken 서명/검증
   - `HmacTokenSigner` 어댑터

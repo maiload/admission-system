@@ -39,9 +39,9 @@ public class StreamQueueService implements StreamQueueInPort {
         String scheduleId = query.scheduleId();
         String queueToken = query.queueToken();
 
-        var stateQuery = new QueueRepositoryPort.StateQuery(eventId, scheduleId, queueToken);
-        var sizeQuery = new QueueRepositoryPort.SizeQuery(eventId, scheduleId);
-        var soldOutQuery = new SoldOutQueryPort.Query(eventId, scheduleId);
+        var stateQuery = toStateQuery(eventId, scheduleId, queueToken);
+        var sizeQuery = toSizeQuery(eventId, scheduleId);
+        var soldOutQuery = toSoldOutQuery(eventId, scheduleId);
 
         Mono<ProgressResult> stateMono = queueRepositoryPort.getState(stateQuery);
         Mono<Long> sizeMono = queueRepositoryPort.getQueueSize(sizeQuery);
@@ -73,5 +73,17 @@ public class StreamQueueService implements StreamQueueInPort {
 
     private boolean isTerminalStatus(ProgressResult result) {
         return result.status() != QueueStatus.WAITING;
+    }
+
+    private QueueRepositoryPort.StateQuery toStateQuery(String eventId, String scheduleId, String queueToken) {
+        return new QueueRepositoryPort.StateQuery(eventId, scheduleId, queueToken);
+    }
+
+    private QueueRepositoryPort.SizeQuery toSizeQuery(String eventId, String scheduleId) {
+        return new QueueRepositoryPort.SizeQuery(eventId, scheduleId);
+    }
+
+    private SoldOutQueryPort.Query toSoldOutQuery(String eventId, String scheduleId) {
+        return new SoldOutQueryPort.Query(eventId, scheduleId);
     }
 }

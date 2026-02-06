@@ -1,7 +1,7 @@
 package com.example.ticket.core.application.service;
 
-import com.example.ticket.core.application.dto.schedule.ScheduleStartView;
-import com.example.ticket.core.application.port.in.ActivateSchedulesInPort;
+import com.example.ticket.core.application.port.out.ScheduleReadPort.ScheduleStartView;
+import com.example.ticket.core.application.port.in.ActiveScheduleInPort;
 import com.example.ticket.core.application.port.out.ActiveScheduleWritePort;
 import com.example.ticket.core.application.port.out.ScheduleReadPort;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
-public class ActivateSchedulesService implements ActivateSchedulesInPort {
+public class ActivateSchedulesService implements ActiveScheduleInPort {
 
     private final ScheduleReadPort scheduleReadPort;
     private final ActiveScheduleWritePort activeScheduleWritePort;
@@ -22,12 +22,14 @@ public class ActivateSchedulesService implements ActivateSchedulesInPort {
                 .reduce(0L, Long::sum);
     }
 
+    @Override
+    public Mono<Long> clearAll() {
+        return activeScheduleWritePort.clearAll();
+    }
+
     private Mono<Long> upsert(ScheduleStartView view) {
         long startAtMs = view.startAt().toEpochMilli();
-        return activeScheduleWritePort.upsert(
-                        view.eventId().toString(),
-                        view.scheduleId().toString(),
-                        startAtMs)
-                .map(ok -> ok ? 1L : 0L);
+        return activeScheduleWritePort.upsert(view.eventId().toString(), view.scheduleId().toString(), startAtMs)
+                .map(ok -> Boolean.TRUE.equals(ok) ? 1L : 0L);
     }
 }

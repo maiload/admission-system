@@ -31,7 +31,7 @@ for each major API in the admission system.
 4. window validation (`joinWindowAfterMs`)
 5. `SoldOutQueryPort.isSoldOut` → `RedisSoldOutQuery`
 6. `RankEstimator.estimate` (score tie-breaker computed in Lua with seq)
-7. `QueueRepositoryPort.join` → `RedisQueueRepository`
+7. `QueueRepositoryPort.join` → `RedisQueueAdapter`
 8. Lua: `queue-join.lua`
 
 **Outputs**: `JoinResult(queueToken, estimatedRank, sseUrl, alreadyJoined)`
@@ -45,8 +45,8 @@ for each major API in the admission system.
 **Call chain**
 1. `queue-gate` → `GateController` (`/gate/stream`)
 2. `StreamQueueInPort.stream(eventId, scheduleId, queueToken)` → `StreamQueueService`
-3. `QueueRepositoryPort.getState` → `RedisQueueRepository` (qstate HASH)
-4. `QueueRepositoryPort.getQueueSize` → `RedisQueueRepository` (ZSET size)
+3. `QueueRepositoryPort.getState` → `RedisQueueAdapter` (qstate HASH)
+4. `QueueRepositoryPort.getQueueSize` → `RedisQueueAdapter` (ZSET size)
 5. `SoldOutQueryPort.isSoldOut` → `RedisSoldOutQuery`
 
 **Outputs**: `QueueProgressDto` SSE events (`WAITING` → `ADMISSION_GRANTED`/`SOLD_OUT`)
@@ -97,9 +97,9 @@ for each major API in the admission system.
 2. `SessionPort.validateSession` → `RedisSessionAdapter`
 3. `SessionPort.refreshSession` → `RedisSessionAdapter`
 4. `CreateHoldInPort.execute(clientId, scheduleId, seatId)` → `CreateHoldService`
-5. `HoldRepositoryPort.findByScheduleAndClient` → `R2dbcHoldRepository`
+5. `HoldRepositoryPort.findByScheduleAndClient` → `R2dbcHoldAdapter`
 6. `HoldPolicy.calculateExpiresAt`
-7. `HoldRepositoryPort.save` → `R2dbcHoldRepository`
+7. `HoldRepositoryPort.save` → `R2dbcHoldAdapter`
 8. `SeatAvailabilityService.isSoldOut`
 9. `SoldOutPort.markSoldOut` → `RedisSoldOutAdapter`
 
@@ -114,11 +114,11 @@ for each major API in the admission system.
 **Call chain**
 1. `ticketing-core` → `CoreHoldController`
 2. `ConfirmHoldInPort.execute(clientId, holdId, scheduleId, sessionId)` → `ConfirmHoldService`
-3. `HoldRepositoryPort.findById` → `R2dbcHoldRepository`
+3. `HoldRepositoryPort.findById` → `R2dbcHoldAdapter`
 4. `Hold.validateConfirmable`
-5. `ReservationRepositoryPort.findByScheduleAndSeat` → `R2dbcReservationRepository`
-6. `ReservationRepositoryPort.save` → `R2dbcReservationRepository`
-7. `HoldRepositoryPort.deleteById` → `R2dbcHoldRepository`
+5. `ReservationRepositoryPort.findByScheduleAndSeat` → `R2dbcReservationAdapter`
+6. `ReservationRepositoryPort.save` → `R2dbcReservationAdapter`
+7. `HoldRepositoryPort.deleteById` → `R2dbcHoldAdapter`
 8. `SessionPort.closeSession` → `RedisSessionAdapter`
 9. `SeatAvailabilityService.isSoldOut`
 10. `SoldOutPort.markSoldOut` → `RedisSoldOutAdapter`

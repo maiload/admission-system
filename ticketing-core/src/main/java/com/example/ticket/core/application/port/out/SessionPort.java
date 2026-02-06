@@ -4,29 +4,23 @@ import reactor.core.publisher.Mono;
 
 public interface SessionPort {
 
-    /**
-     * Atomic handshake: validate + DEL enter_token → create core session → SADD active.
-     * Returns clientId on success.
-     */
-    Mono<String> handshake(String eventId, String scheduleId, String jti, String clientId, String sessionId);
+    Mono<String> handshake(HandshakeCommand command);
 
-    /**
-     * Validate coreSessionToken and return clientId.
-     */
-    Mono<String> validateSession(String eventId, String scheduleId, String sessionId);
+    Mono<String> validateSession(ValidateQuery query);
 
-    /**
-     * Extend session TTL (sliding window).
-     */
-    Mono<Boolean> refreshSession(String eventId, String scheduleId, String sessionId);
+    Mono<Boolean> refreshSession(RefreshCommand command);
 
-    /**
-     * Close session: DEL session keys + SREM active.
-     */
-    Mono<Void> closeSession(String eventId, String scheduleId, String sessionId, String clientId);
+    Mono<Void> closeSession(CloseCommand command);
 
-    /**
-     * Scan active SET and remove members whose session expired.
-     */
-    Mono<Long> cleanupExpiredSessions(String eventId, String scheduleId);
+    Mono<Long> cleanupExpiredSessions(CleanupQuery query);
+
+    record HandshakeCommand(String eventId, String scheduleId, String jti, String sessionId) {}
+
+    record ValidateQuery(String eventId, String scheduleId, String sessionId) {}
+
+    record RefreshCommand(String eventId, String scheduleId, String sessionId) {}
+
+    record CloseCommand(String eventId, String scheduleId, String sessionId, String clientId) {}
+
+    record CleanupQuery(String eventId, String scheduleId) {}
 }

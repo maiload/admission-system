@@ -32,10 +32,10 @@ public class CoreEnterController {
                 .map(result -> {
                     ResponseCookie cookie = ResponseCookie.from(
                                     coreProperties.session().cookieName(),
-                                    result.coreSessionToken())
+                                    result.sessionToken())
                             .httpOnly(true)
                             .path("/")
-                            .maxAge(Duration.ofSeconds(result.expiresInSec()))
+                            .maxAge(Duration.ofSeconds(result.sessionTtlSec()))
                             .build();
                     response.addCookie(cookie);
                     return CoreEnterResponse.fromResult(result);

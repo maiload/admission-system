@@ -1,29 +1,31 @@
 package com.example.ticket.core.adapter.in.scheduler;
 
+import com.example.ticket.core.application.port.out.ActiveScheduleReadPort;
 import com.example.ticket.core.application.port.out.SessionPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActiveCleanupScheduler {
 
+    private final ActiveScheduleReadPort activeScheduleReadPort;
     private final SessionPort sessionPort;
-
-    // TODO: iterate active schedules dynamically
-    private static final String EVENT_ID = "a0000000-0000-0000-0000-000000000001";
-    private static final String SCHEDULE_ID = "b0000000-0000-0000-0000-000000000001";
 
     @Scheduled(fixedDelayString = "${core.scheduler.active-cleanup-interval-ms}")
     public void cleanup() {
-        sessionPort.cleanupExpiredSessions(EVENT_ID, SCHEDULE_ID)
-                .subscribe(count -> {
-                    if (count > 0) {
-                        log.info("Cleaned up {} expired sessions from active set", count);
-                    }
-                });
+        activeScheduleReadPort.findAll()
+                .flatMap(active -> sessionPort.cleanupExpiredSessions(
+                        new SessionPort.CleanupQuery(active.eventId(), active.scheduleId())
+                ))
+                .reduce(0L, Long::sum)
+                .doOnNext(total -> {
+                    if (total > 0) log.info("Cleaned up {} expired sessions from active set", total);
+                })
+                .subscribe();
     }
 }

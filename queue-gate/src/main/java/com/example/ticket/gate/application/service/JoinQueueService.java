@@ -113,8 +113,7 @@ public class JoinQueueService implements JoinQueueInPort {
     }
 
     private Mono<JoinContext> ensureNotSoldOut(JoinContext ctx) {
-        var query = new SoldOutQueryPort.Query(ctx.command().eventId(), ctx.command().scheduleId());
-        return soldOutQueryPort.isSoldOut(query)
+        return soldOutQueryPort.isSoldOut(ctx.toSoldOutQuery())
                 .flatMap(soldOut -> Boolean.TRUE.equals(soldOut)
                         ? Mono.error(new BusinessException(ErrorCode.SOLD_OUT))
                         : Mono.just(ctx)
@@ -122,15 +121,7 @@ public class JoinQueueService implements JoinQueueInPort {
     }
 
     private Mono<JoinResult> joinAtomically(JoinContext ctx) {
-        var joinCommand = new QueueRepositoryPort.JoinCommand(
-                ctx.command().eventId(),
-                ctx.command().scheduleId(),
-                ctx.command().clientId(),
-                ctx.queueToken(),
-                ctx.estimatedRank(),
-                ctx.stateTtlSec()
-        );
-        return queueRepositoryPort.join(joinCommand);
+        return queueRepositoryPort.join(ctx.toQueueJoinCommand());
     }
 
     private record SyncClaims(String eventId, String scheduleId, long startAtMs) {}
@@ -140,5 +131,20 @@ public class JoinQueueService implements JoinQueueInPort {
             long estimatedRank,
             String queueToken,
             int stateTtlSec
-    ) {}
+    ) {
+        private SoldOutQueryPort.Query toSoldOutQuery() {
+            return new SoldOutQueryPort.Query(command.eventId(), command.scheduleId());
+        }
+
+        private QueueRepositoryPort.JoinCommand toQueueJoinCommand() {
+            return new QueueRepositoryPort.JoinCommand(
+                    command.eventId(),
+                    command.scheduleId(),
+                    command.clientId(),
+                    queueToken,
+                    estimatedRank,
+                    stateTtlSec
+            );
+        }
+    }
 }
