@@ -223,7 +223,7 @@ export default function HomePage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
-            <p className="text-sm text-gray-500 mb-2">예매 시작까지</p>
+            <p className="text-sm text-gray-500 mb-2">{isOpen ? '예매 시작 후' : '예매 시작까지'}</p>
             <p
               className={`text-7xl font-bold font-mono mb-6 transition-colors ${
                 isOpen ? 'text-ktx-red' : 'text-ktx-navy'
