@@ -35,10 +35,12 @@ public class AdmissionJob {
         String eventId = parts[0];
         String scheduleId = parts[1];
 
-        // list of [jti, enterToken] pairs
-        List<String> tokenPairs = tokenGeneratorPort.generateBatch(eventId, scheduleId, config.maxBatch());
-
-        return issuerPort.issue(eventId, scheduleId, config, tokenPairs)
+        return issuerPort.isHeadReady(eventId, scheduleId, config)
+                .filter(ready -> ready)
+                .flatMap(ready -> {
+                    List<String> tokenPairs = tokenGeneratorPort.generateBatch(eventId, scheduleId, config.maxBatch());
+                    return issuerPort.issue(eventId, scheduleId, config, tokenPairs);
+                })
                 .filter(result -> result.issued() > 0)
                 .doOnNext(result ->
                         log.info("Schedule {}:{} — issued={}, skipped={}, remaining={}",

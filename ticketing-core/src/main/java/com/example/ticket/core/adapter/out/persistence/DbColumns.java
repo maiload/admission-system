@@ -17,5 +17,13 @@ public final class DbColumns {
     public static final String CREATED_AT = "created_at";
     public static final String CONFIRMED_AT = "confirmed_at";
     public static final String START_AT = "start_at";
+    public static final String TRAIN_NAME = "train_name";
+    public static final String TRAIN_NUMBER = "train_number";
+    public static final String DEPARTURE = "departure";
+    public static final String ARRIVAL = "arrival";
+    public static final String DEPARTURE_TIME = "departure_time";
+    public static final String ARRIVAL_TIME = "arrival_time";
+    public static final String SERVICE_DATE = "service_date";
+    public static final String PRICE = "price";
     public static final String COUNT = "cnt";
 }

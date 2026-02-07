@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBookingStore } from '../stores/bookingStore';
 import { joinQueue, streamQueue } from '../api/client';
+import korailLogo from '../assets/korail-logo.png';
 
 type Phase = 'JOINING' | 'WAITING' | 'GRANTED' | 'SOLD_OUT' | 'ERROR';
 
@@ -14,7 +15,7 @@ export default function GatePage() {
 
   const [phase, setPhase] = useState<Phase>('JOINING');
   const [rank, setRank] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [initialRank, setInitialRank] = useState(0);
   const [error, setError] = useState('');
   const esRef = useRef<EventSource | null>(null);
 
@@ -28,6 +29,7 @@ export default function GatePage() {
         const join = await joinQueue(schedule.eventId, schedule.scheduleId, syncToken);
         setQueueToken(join.queueToken);
         setRank(join.estimatedRank);
+        setInitialRank(join.estimatedRank);
         setPhase('WAITING');
       } catch {
         setError('대기열 진입에 실패했습니다. 다시 시도해주세요.');
@@ -49,7 +51,6 @@ export default function GatePage() {
       (progress) => {
         setQueueProgress(progress);
         setRank(progress.estimatedRank);
-        setTotal(progress.totalInQueue);
         if (progress.status === 'ADMISSION_GRANTED' && progress.enterToken) {
           setEnterToken(progress.enterToken);
           setPhase('GRANTED');
@@ -82,57 +83,43 @@ export default function GatePage() {
     return null;
   }
 
-  const progressPercent = total > 0 ? Math.max(0, Math.min(100, ((total - rank) / total) * 100)) : 0;
+  const progressPercent = initialRank > 0
+    ? Math.max(0, Math.min(100, ((initialRank - rank) / initialRank) * 100))
+    : 0;
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Train info summary */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 w-full mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-xs bg-ktx-red text-white px-2 py-0.5 rounded font-semibold">
-              {schedule.trainName}
-            </span>
-            <span className="text-sm font-bold text-ktx-navy">
-              {schedule.departure} → {schedule.arrival}
-            </span>
-          </div>
-          <span className="text-sm text-gray-500">
-            {schedule.date} {schedule.departureTime}
-          </span>
-        </div>
-      </div>
-
+    <div className="flex flex-col items-center justify-center min-h-[60vh] -mt-10">
       {/* Main status card */}
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8 text-center">
+        {/* Logo */}
+        <img src={korailLogo} alt="KORAIL" className="h-8 mx-auto mb-6" />
+
         {phase === 'JOINING' && (
           <>
-            <div className="animate-spin w-10 h-10 border-4 border-ktx-red/20 border-t-ktx-red rounded-full mx-auto mb-4" />
+            <div className="animate-spin w-10 h-10 border-4 border-ktx-blue/20 border-t-ktx-blue rounded-full mx-auto mb-4" />
             <p className="text-ktx-navy font-semibold">대기열 진입 중...</p>
           </>
         )}
 
         {phase === 'WAITING' && (
           <>
-            <div className="mb-6">
-              <p className="text-sm text-gray-500 mb-1">현재 나의 순번</p>
-              <p className="text-5xl font-bold text-ktx-blue">{rank.toLocaleString()}</p>
-              {total > 0 && (
-                <p className="text-xs text-gray-400 mt-1">전체 대기 {total.toLocaleString()}명</p>
-              )}
+            <div className="text-sm text-gray-600 leading-relaxed mb-6">
+              <p>대기화면을 켜진 상태로 유지하여 주십시오.</p>
+              <p>화면이 비활성화되면 연결이 끊어지고 대기순서가 다시 부여됩니다.</p>
+              <p className="mt-3">새로고침, 닫기 버튼을 누르면 대기순서가 다시 부여됩니다.</p>
             </div>
+
+            <p className="text-sm font-bold text-ktx-navy mb-2">나의 대기 순서</p>
+            <p className="text-5xl font-bold text-ktx-navy tracking-wide mb-4">
+              {rank.toLocaleString()}
+            </p>
 
             {/* Progress bar */}
-            <div className="w-full bg-gray-100 rounded-full h-3 mb-4">
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
               <div
-                className="bg-gradient-to-r from-ktx-blue to-ktx-red h-3 rounded-full transition-all duration-500"
+                className="bg-ktx-blue h-3 rounded-full transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-              <div className="w-2 h-2 rounded-full bg-ktx-blue animate-pulse" />
-              대기 중입니다. 잠시만 기다려 주세요.
             </div>
           </>
         )}

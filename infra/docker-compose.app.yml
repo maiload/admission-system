@@ -108,18 +108,6 @@ services:
     networks:
       - data-net
 
-  # --- Frontend (Nginx) ---
-  frontend:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile.frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - haproxy
-    networks:
-      - data-net
-
 networks:
   data-net:
     external: true

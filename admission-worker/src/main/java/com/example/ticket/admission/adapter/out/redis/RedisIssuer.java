@@ -6,6 +6,7 @@ import com.example.ticket.admission.application.dto.IssueResult;
 import com.example.ticket.admission.application.port.out.IssuerPort;
 import com.example.ticket.admission.domain.AdmissionConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import reactor.core.publisher.Mono;
@@ -18,7 +19,7 @@ public class RedisIssuer implements IssuerPort {
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
     private final RedisScript<List> issueScript;
-    private final ClockPort clock;
+    private final ClockPort clockPort;
 
     @Override
     public Mono<IssueResult> issue(String eventId, String scheduleId,
@@ -41,8 +42,34 @@ public class RedisIssuer implements IssuerPort {
                 .defaultIfEmpty(new IssueResult(0, 0, 0));
     }
 
+    @Override
+    public Mono<Boolean> isHeadReady(String eventId, String scheduleId, AdmissionConfig config) {
+        if (!config.simulationEnabled() || config.exitRatePerSec() <= 0) {
+            return Mono.just(true);
+        }
+
+        String queueKey = RedisKeyBuilder.queue(eventId, scheduleId);
+
+        return redisTemplate.opsForZSet().range(queueKey, Range.closed(0L, 0L))
+                .next()
+                .flatMap(queueToken -> {
+                    String stateKey = RedisKeyBuilder.queueState(eventId, scheduleId, queueToken);
+                    return redisTemplate.opsForHash().multiGet(stateKey, List.of("joinedAtMs", "estimatedRank"))
+                            .filter(values -> values.getFirst() != null && values.get(1) != null)
+                            .map(values -> {
+                                long joinedAtMs = Long.parseLong(values.get(0).toString());
+                                long estimatedRank = Long.parseLong(values.get(1).toString());
+                                long requiredMs = (estimatedRank * 1000L) / config.exitRatePerSec();
+                                long readyAtMs = joinedAtMs + requiredMs;
+                                return clockPort.nowMillis() >= readyAtMs;
+                            })
+                            .defaultIfEmpty(true);
+                })
+                .defaultIfEmpty(true);
+    }
+
     private List<String> buildKeys(String eventId, String scheduleId) {
-        long epochSecond = clock.nowEpochSecond();
+        long epochSecond = clockPort.nowEpochSecond();
         return List.of(
                 RedisKeyBuilder.queue(eventId, scheduleId),
                 RedisKeyBuilder.rateCounter(eventId, scheduleId, epochSecond),

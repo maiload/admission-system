@@ -29,15 +29,14 @@ export default function CompletePage() {
 
   return (
     <div className="max-w-md mx-auto">
-      {/* Success message */}
-      <div className="text-center mb-6">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+      {/* Success badge */}
+      <div className="text-center mb-5">
+        <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3">
             <polyline points="20,6 9,17 4,12" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-ktx-navy mb-1">예매가 완료되었습니다!</h1>
-        <p className="text-sm text-gray-500">아래 모바일 승차권을 확인해 주세요.</p>
+        <p className="text-base font-bold text-ktx-navy">예매가 완료되었습니다</p>
       </div>
 
       {/* Mobile ticket */}
@@ -48,12 +47,18 @@ export default function CompletePage() {
       />
 
       {/* Actions */}
-      <div className="mt-6 space-y-3">
+      <div className="mt-5 flex gap-3">
         <button
           onClick={handleHome}
-          className="w-full bg-ktx-blue hover:bg-ktx-navy text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer"
+          className="flex-1 bg-ktx-blue hover:bg-ktx-navy text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer text-sm"
         >
-          홈으로 돌아가기
+          홈으로
+        </button>
+        <button
+          onClick={handleHome}
+          className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-600 font-semibold py-3 rounded-xl transition-colors cursor-pointer text-sm"
+        >
+          결제내역
         </button>
       </div>
     </div>

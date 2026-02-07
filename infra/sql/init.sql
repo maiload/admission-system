@@ -16,6 +16,14 @@ CREATE TABLE schedules (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id    UUID         NOT NULL REFERENCES events(id),
     start_at    TIMESTAMPTZ  NOT NULL,
+    train_name  VARCHAR(50)  NOT NULL,
+    train_number VARCHAR(20) NOT NULL,
+    departure   VARCHAR(50)  NOT NULL,
+    arrival     VARCHAR(50)  NOT NULL,
+    departure_time TIME      NOT NULL,
+    arrival_time   TIME      NOT NULL,
+    service_date   DATE      NOT NULL,
+    price       INTEGER      NOT NULL,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
@@ -71,11 +79,17 @@ INSERT INTO events (id, name)
 VALUES ('a0000000-0000-0000-0000-000000000001', '2026 New Year Concert');
 
 -- Schedules (4 train times)
-INSERT INTO schedules (id, event_id, start_at) VALUES
-  ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '2026-01-30T06:00:00+09:00'),
-  ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', '2026-01-30T09:00:00+09:00'),
-  ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', '2026-01-30T13:00:00+09:00'),
-  ('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', '2026-01-30T17:00:00+09:00');
+INSERT INTO schedules (
+  id, event_id, start_at,
+  train_name, train_number, departure, arrival,
+  departure_time, arrival_time, service_date, price
+) VALUES
+  ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '2026-02-14T06:00:00+09:00',
+   'KTX', '101', '서울', '부산', '06:00:00', '08:35:00', '2026-02-14', 59800),
+  ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', '2026-02-15T09:00:00+09:00',
+   'KTX', '103', '서울', '부산', '09:00:00', '11:35:00', '2026-02-15', 59800),
+  ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', '2026-02-16T13:00:00+09:00',
+   'KTX', '105', '서울', '부산', '13:00:00', '15:35:00', '2026-02-16', 59800);
 
 -- Seats: Zone A (1~50), B (1~50), C (1~50), D (1~50) = 200 seats
 INSERT INTO seats (event_id, zone, seat_no)

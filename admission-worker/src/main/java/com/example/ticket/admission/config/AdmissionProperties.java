@@ -7,13 +7,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record AdmissionProperties(
         Worker worker,
         Token token,
-        Queue queue
+        Queue queue,
+        Simulation simulation
 ) {
     public record Worker(int pollIntervalMs, int maxBatch, int rateCap, int concurrencyCap) { }
 
     public record Token(String secret, int ttlSec, int rateCounterTtlSec) { }
 
     public record Queue(int stateTtlSec) { }
+
+    public record Simulation(boolean enabled, int exitRatePerSec) { }
 
     public AdmissionConfig toConfig() {
         return new AdmissionConfig(
@@ -22,7 +25,9 @@ public record AdmissionProperties(
                 worker.concurrencyCap(),
                 token.ttlSec(),
                 queue.stateTtlSec(),
-                token.rateCounterTtlSec()
+                token.rateCounterTtlSec(),
+                simulation.enabled(),
+                simulation.exitRatePerSec()
         );
     }
 }

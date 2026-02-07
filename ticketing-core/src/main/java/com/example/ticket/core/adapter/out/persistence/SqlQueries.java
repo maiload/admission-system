@@ -93,4 +93,13 @@ public final class SqlQueries {
     public static final String SCHEDULE_FIND_ALL = """
             SELECT id, event_id, start_at FROM schedules
             """;
+
+    public static final String SCHEDULE_FIND_DETAILS_BY_IDS = """
+            SELECT id, event_id, start_at,
+                   train_name, train_number, departure, arrival,
+                   departure_time, arrival_time, service_date, price
+            FROM schedules
+            WHERE id = ANY(:scheduleIds)
+            ORDER BY start_at
+            """;
 }

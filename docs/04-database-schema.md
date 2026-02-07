@@ -24,6 +24,14 @@ CREATE TABLE schedules (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id    UUID            NOT NULL REFERENCES events(id),
     start_at    TIMESTAMPTZ     NOT NULL,
+    train_name  VARCHAR(50)     NOT NULL,
+    train_number VARCHAR(20)    NOT NULL,
+    departure   VARCHAR(50)     NOT NULL,
+    arrival     VARCHAR(50)     NOT NULL,
+    departure_time TIME         NOT NULL,
+    arrival_time   TIME         NOT NULL,
+    service_date   DATE         NOT NULL,
+    price       INTEGER         NOT NULL,
     created_at  TIMESTAMPTZ     NOT NULL DEFAULT now()
 );
 
@@ -142,8 +150,16 @@ INSERT INTO events (id, name)
 VALUES ('ev_2026_0101', '2026 New Year Concert');
 
 -- Schedule
-INSERT INTO schedules (id, event_id, start_at)
-VALUES ('sc_2026_0101_2000', 'ev_2026_0101', '2026-01-01T20:00:00+09:00');
+INSERT INTO schedules (
+    id, event_id, start_at,
+    train_name, train_number, departure, arrival,
+    departure_time, arrival_time, service_date, price
+)
+VALUES (
+    'sc_2026_0101_2000', 'ev_2026_0101', '2026-01-01T20:00:00+09:00',
+    'KTX', '103', '서울', '부산',
+    '09:00:00', '11:35:00', '2026-01-01', 59800
+);
 
 -- Seats: Zone A (1~100), Zone B (1~100) = 200 seats
 INSERT INTO seats (event_id, zone, seat_no)

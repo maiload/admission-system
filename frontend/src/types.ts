@@ -59,3 +59,16 @@ export interface TrainSchedule {
   date: string;
   price: number;
 }
+
+export interface ActiveSchedule {
+  eventId: string;
+  scheduleId: string;
+  trainName: string;
+  trainNumber: string;
+  departure: string;
+  arrival: string;
+  departureTime: string;
+  arrivalTime: string;
+  serviceDate: string;
+  price: number;
+}

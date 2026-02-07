@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/core/admin")
 @RequiredArgsConstructor
 public class AdminScheduleController {
 

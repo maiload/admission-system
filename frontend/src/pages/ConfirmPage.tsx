@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBookingStore } from '../stores/bookingStore';
 import { confirmBooking } from '../api/client';
+import korailLogo from '../assets/korail-logo.png';
 
 export default function ConfirmPage() {
   const navigate = useNavigate();
@@ -69,69 +70,88 @@ export default function ConfirmPage() {
   });
   const displaySeatLabels = selectedSeatLabels.length > 0 ? selectedSeatLabels : fallbackLabels;
 
+  const totalPrice = schedule.price * selectedSeatIds.length;
+
   return (
     <div className="max-w-md mx-auto">
-      {/* Timer */}
-      <div className={`rounded-xl p-4 mb-6 text-center ${expired ? 'bg-red-50 border border-red-200' : urgent ? 'bg-orange-50 border border-orange-200' : 'bg-blue-50 border border-blue-200'}`}>
-        <p className="text-xs text-gray-500 mb-1">결제 제한 시간</p>
-        <p className={`text-4xl font-bold font-mono ${expired ? 'text-red-600' : urgent ? 'text-ktx-orange' : 'text-ktx-blue'}`}>
-          {formatTimer(remainSec)}
-        </p>
-        {expired && <p className="text-xs text-red-500 mt-1">시간이 만료되었습니다.</p>}
+      {/* Page title */}
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => navigate('/', { replace: true })}
+          className="text-gray-500 text-xl cursor-pointer hover:text-gray-700"
+        >
+          ‹
+        </button>
+        <h1 className="text-lg font-bold text-ktx-navy">선택한 승차권</h1>
       </div>
 
-      {/* Booking summary card */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
-        <div className="bg-ktx-blue px-6 py-3 text-white">
-          <p className="font-semibold">예매 정보 확인</p>
+      {/* Timer notice */}
+      <div className={`rounded-lg p-3 mb-5 flex items-start gap-2 text-sm ${expired ? 'bg-red-50 border border-red-200' : urgent ? 'bg-orange-50 border border-orange-200' : 'bg-amber-50 border border-amber-200'}`}>
+        <span className="text-amber-500 mt-0.5">ⓘ</span>
+        <div>
+          <p className={`font-semibold ${expired ? 'text-red-600' : 'text-gray-700'}`}>
+            결제 제한 시간: <span className="font-mono">{formatTimer(remainSec)}</span>
+          </p>
+          {expired
+            ? <p className="text-xs text-red-500 mt-1">시간이 만료되었습니다.</p>
+            : <p className="text-xs text-gray-500 mt-1">제한 시간 내에 결제를 완료해 주세요.</p>
+          }
         </div>
+      </div>
 
-        <div className="px-6 py-5 space-y-4">
-          {/* Route */}
-          <div className="flex items-center justify-between">
+      {/* Ticket card */}
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+        <div className="px-6 py-5">
+          {/* Logo + badge */}
+          <div className="flex items-center justify-between mb-5">
+            <img src={korailLogo} alt="KORAIL" className="h-7" />
+            <span className="text-xs border border-gray-300 rounded px-2 py-1 text-gray-500">운임요금</span>
+          </div>
+
+          {/* Route - large times */}
+          <div className="flex items-center justify-between mb-1">
             <div className="text-center">
-              <p className="text-xl font-bold text-ktx-navy">{schedule.departure}</p>
-              <p className="text-sm text-gray-500">{schedule.departureTime}</p>
+              <p className="text-3xl font-bold text-ktx-navy">{schedule.departureTime.slice(0, 5)}</p>
+              <p className="text-base text-gray-600 mt-1">{schedule.departure}</p>
             </div>
-            <div className="flex-1 mx-4 flex flex-col items-center">
-              <p className="text-xs text-ktx-red font-semibold">{schedule.trainName} {schedule.trainNumber}</p>
-              <div className="w-full flex items-center mt-1">
-                <div className="w-2 h-2 rounded-full bg-ktx-blue" />
-                <div className="flex-1 border-t border-dashed border-gray-300 mx-1" />
-                <div className="w-2 h-2 rounded-full bg-ktx-red" />
-              </div>
-            </div>
+            <div className="text-gray-300 text-xl px-3">→</div>
             <div className="text-center">
-              <p className="text-xl font-bold text-ktx-navy">{schedule.arrival}</p>
-              <p className="text-sm text-gray-500">{schedule.arrivalTime}</p>
+              <p className="text-3xl font-bold text-ktx-navy">{schedule.arrivalTime.slice(0, 5)}</p>
+              <p className="text-base text-gray-600 mt-1">{schedule.arrival}</p>
             </div>
           </div>
 
-          <div className="border-t border-gray-100" />
+          {/* Dashed divider */}
+          <div className="border-t border-dashed border-gray-200 my-5" />
 
-          {/* Details */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          {/* Details grid */}
+          <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
             <div>
-              <p className="text-gray-400">승차일</p>
-              <p className="font-semibold text-ktx-navy">{schedule.date}</p>
+              <p className="text-gray-400 text-xs">출발일</p>
+              <p className="font-semibold text-ktx-navy mt-0.5">{schedule.date}</p>
             </div>
             <div>
-              <p className="text-gray-400">좌석</p>
-              <p className="font-semibold text-ktx-navy">
-                {displaySeatLabels.length}석
-              </p>
-              {displaySeatLabels.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {displaySeatLabels.join(', ')}
-                </p>
-              )}
+              <p className="text-gray-400 text-xs">인원</p>
+              <p className="font-semibold text-ktx-navy mt-0.5">성인 {selectedSeatIds.length}</p>
             </div>
             <div>
-              <p className="text-gray-400">요금</p>
-              <p className="font-bold text-ktx-red text-lg">
-                {(schedule.price * selectedSeatIds.length).toLocaleString()}원
-              </p>
+              <p className="text-gray-400 text-xs">기차번호</p>
+              <p className="font-semibold text-ktx-navy mt-0.5">{schedule.trainName}-{schedule.trainNumber}</p>
             </div>
+            <div>
+              <p className="text-gray-400 text-xs">좌석</p>
+              <p className="font-semibold text-ktx-navy mt-0.5">{displaySeatLabels.join(', ')}</p>
+            </div>
+          </div>
+
+          {/* Dashed divider */}
+          <div className="border-t border-dashed border-gray-200 my-5" />
+
+          {/* Price */}
+          <div className="text-right">
+            <p className="text-2xl font-bold text-ktx-navy">
+              {totalPrice.toLocaleString()}<span className="text-base font-normal text-gray-500">원</span>
+            </p>
           </div>
         </div>
       </div>
@@ -148,7 +168,7 @@ export default function ConfirmPage() {
         <button
           onClick={handleConfirm}
           disabled={expired || confirming}
-          className="w-full bg-ktx-red hover:bg-red-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl text-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
+          className="w-full bg-ktx-blue hover:bg-ktx-navy disabled:bg-gray-300 text-white font-bold py-4 rounded-xl text-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
         >
           {confirming ? '결제 처리 중...' : expired ? '시간 만료' : '결제하기'}
         </button>

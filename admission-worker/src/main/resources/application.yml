@@ -21,6 +21,9 @@ admission:
     rate-counter-ttl-sec: 3
   queue:
     state-ttl-sec: ${ADMISSION_QUEUE_STATE_TTL_SEC:1800}
+  simulation:
+    enabled: true
+    exit-rate-per-sec: 200
 
 management:
   endpoints:

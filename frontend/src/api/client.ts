@@ -6,6 +6,7 @@ import type {
   Seat,
   HoldResponse,
   ConfirmResponse,
+  ActiveSchedule,
 } from '../types';
 
 const GATE_BASE = '/gate';
@@ -146,4 +147,22 @@ export async function confirmBooking(
   if (!res.ok) throw new Error(`confirm failed: ${res.status}`);
   const data = await res.json();
   return { confirmationId: data.reservationId };
+}
+
+// --- Admin API ---
+
+export async function activateSchedules(): Promise<void> {
+  const res = await fetch(`${CORE_BASE}/admin/schedules/activate`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`activate schedules failed: ${res.status}`);
+}
+
+export async function fetchActiveSchedules(): Promise<ActiveSchedule[]> {
+  const res = await fetch(`${CORE_BASE}/schedules/active`, {
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`active schedules failed: ${res.status}`);
+  return res.json();
 }

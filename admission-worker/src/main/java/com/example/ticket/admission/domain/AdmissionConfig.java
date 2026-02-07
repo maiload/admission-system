@@ -6,5 +6,7 @@ public record AdmissionConfig(
         int concurrencyCap,
         int enterTtlSec,
         int qstateTtlSec,
-        int rateTtlSec
+        int rateTtlSec,
+        boolean simulationEnabled,
+        int exitRatePerSec
 ) {}
