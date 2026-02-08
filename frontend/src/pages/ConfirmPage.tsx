@@ -29,8 +29,10 @@ export default function ConfirmPage() {
     const updateRemain = () => {
       const diff = Math.max(0, Math.floor((expMs - Date.now()) / 1000));
       setRemainSec(diff);
-      if (diff <= 0 && timerRef.current) {
-        clearInterval(timerRef.current);
+      if (diff <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        // 홀드 클린업(2초 간격) 후 좌석이 AVAILABLE로 복구되도록 대기
+        setTimeout(() => navigate('/seats', { replace: true }), 3000);
       }
     };
     updateRemain();
@@ -93,7 +95,7 @@ export default function ConfirmPage() {
             결제 제한 시간: <span className="font-mono">{formatTimer(remainSec)}</span>
           </p>
           {expired
-            ? <p className="text-xs text-red-500 mt-1">시간이 만료되었습니다.</p>
+            ? <p className="text-xs text-red-500 mt-1">시간이 만료되었습니다. 좌석 선택 화면으로 이동합니다.</p>
             : <p className="text-xs text-gray-500 mt-1">제한 시간 내에 결제를 완료해 주세요.</p>
           }
         </div>

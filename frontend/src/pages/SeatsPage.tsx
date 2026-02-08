@@ -8,6 +8,9 @@ export default function SeatsPage() {
   const navigate = useNavigate();
   const schedule = useBookingStore((s) => s.schedule);
   const enterToken = useBookingStore((s) => s.enterToken);
+  const entered = useBookingStore((s) => s.entered);
+  const setEntered = useBookingStore((s) => s.setEntered);
+  const clearHoldAndSelection = useBookingStore((s) => s.clearHoldAndSelection);
   const setHoldId = useBookingStore((s) => s.setHoldId);
   const setExpiresAt = useBookingStore((s) => s.setExpiresAt);
   const setSelectedSeatLabels = useBookingStore((s) => s.setSelectedSeatLabels);
@@ -20,25 +23,35 @@ export default function SeatsPage() {
   const [page, setPage] = useState(0);
   const ROWS_PER_PAGE = 20;
 
+  // clear previous hold/selection on mount
+  useEffect(() => {
+    clearHoldAndSelection();
+  }, [clearHoldAndSelection]);
+
   // enter + fetch seats
   useEffect(() => {
-    if (!schedule || !enterToken) {
-      navigate('/', { replace: true });
-      return;
-    }
-
     (async () => {
       try {
-        await enter(schedule.eventId, schedule.scheduleId, enterToken);
-        const seatList = await fetchSeats(schedule.eventId, schedule.scheduleId);
+        // 1) 최초 입장: enterToken으로 세션 생성
+        if (!entered && schedule && enterToken) {
+          await enter(schedule.eventId, schedule.scheduleId, enterToken);
+          setEntered(true);
+        }
+
+        // 2) 좌석 조회 (세션 쿠키로 인증 - 새로고침에도 동작)
+        const seatList = await fetchSeats(
+          schedule?.eventId ?? '',
+          schedule?.scheduleId ?? '',
+        );
         setSeats(seatList);
       } catch {
-        setError('좌석 정보를 불러오는 데 실패했습니다.');
+        // 세션 쿠키도 없으면 홈으로
+        navigate('/', { replace: true });
       } finally {
         setLoading(false);
       }
     })();
-  }, [schedule, enterToken, navigate]);
+  }, [schedule, enterToken, entered, setEntered, navigate]);
 
   const toggleSeat = (seatId: string) => {
     setSelected((prev) => {

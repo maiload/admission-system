@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { TrainSchedule, QueueProgress, Seat } from '../types';
 
 interface BookingState {
@@ -17,6 +18,8 @@ interface BookingState {
   setEnterToken: (t: string) => void;
 
   // ticketing core
+  entered: boolean;
+  setEntered: (v: boolean) => void;
   seats: Seat[];
   setSeats: (s: Seat[]) => void;
   selectedSeatIds: string[];
@@ -30,6 +33,9 @@ interface BookingState {
   confirmationId: string;
   setConfirmationId: (id: string) => void;
 
+  // partial reset for re-selecting seats
+  clearHoldAndSelection: () => void;
+
   // reset
   reset: () => void;
 }
@@ -40,6 +46,7 @@ const initialState = {
   queueToken: '',
   queueProgress: null,
   enterToken: '',
+  entered: false,
   seats: [],
   selectedSeatIds: [],
   selectedSeatLabels: [],
@@ -48,26 +55,46 @@ const initialState = {
   confirmationId: '',
 };
 
-export const useBookingStore = create<BookingState>((set) => ({
-  ...initialState,
-  setSchedule: (s) => set({ schedule: s }),
-  setSyncToken: (t) => set({ syncToken: t }),
-  setQueueToken: (t) => set({ queueToken: t }),
-  setQueueProgress: (p) => set({ queueProgress: p }),
-  setEnterToken: (t) => set({ enterToken: t }),
-  setSeats: (s) => set({ seats: s }),
-  toggleSeat: (id) =>
-    set((state) => {
-      const exists = state.selectedSeatIds.includes(id);
-      return {
-        selectedSeatIds: exists
-          ? state.selectedSeatIds.filter((s) => s !== id)
-          : [...state.selectedSeatIds, id],
-      };
+export const useBookingStore = create<BookingState>()(
+  persist(
+    (set) => ({
+      ...initialState,
+      setSchedule: (s) => set({ schedule: s }),
+      setSyncToken: (t) => set({ syncToken: t }),
+      setQueueToken: (t) => set({ queueToken: t }),
+      setQueueProgress: (p) => set({ queueProgress: p }),
+      setEnterToken: (t) => set({ enterToken: t }),
+      setEntered: (v) => set({ entered: v }),
+      setSeats: (s) => set({ seats: s }),
+      toggleSeat: (id) =>
+        set((state) => {
+          const exists = state.selectedSeatIds.includes(id);
+          return {
+            selectedSeatIds: exists
+              ? state.selectedSeatIds.filter((s) => s !== id)
+              : [...state.selectedSeatIds, id],
+          };
+        }),
+      setSelectedSeatLabels: (labels) => set({ selectedSeatLabels: labels }),
+      setHoldId: (id) => set({ holdId: id }),
+      setExpiresAt: (t) => set({ expiresAt: t }),
+      setConfirmationId: (id) => set({ confirmationId: id }),
+      clearHoldAndSelection: () => set({ holdId: '', expiresAt: '', selectedSeatIds: [], selectedSeatLabels: [] }),
+      reset: () => set(initialState),
     }),
-  setSelectedSeatLabels: (labels) => set({ selectedSeatLabels: labels }),
-  setHoldId: (id) => set({ holdId: id }),
-  setExpiresAt: (t) => set({ expiresAt: t }),
-  setConfirmationId: (id) => set({ confirmationId: id }),
-  reset: () => set(initialState),
-}));
+    {
+      name: 'booking-session',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        schedule: state.schedule,
+        enterToken: state.enterToken,
+        entered: state.entered,
+        holdId: state.holdId,
+        expiresAt: state.expiresAt,
+        selectedSeatIds: state.selectedSeatIds,
+        selectedSeatLabels: state.selectedSeatLabels,
+        confirmationId: state.confirmationId,
+      }),
+    },
+  ),
+);
