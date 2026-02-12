@@ -1,0 +1,5 @@
+### Activate schedules from DB into Redis
+GET http://localhost:8030/core/admin/schedules/activate
+
+### Clear all active schedules from Redis
+DELETE http://localhost:8030/core/admin/schedules
