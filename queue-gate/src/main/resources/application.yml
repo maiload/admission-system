@@ -1,0 +1,30 @@
+server:
+  port: 8010
+
+spring:
+  application:
+    name: queue-gate
+  data:
+    redis:
+      cluster:
+        nodes: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379
+
+gate:
+  queue:
+    state-ttl-sec: 60
+    refresh-threshold-sec: 10
+  sse:
+    push-interval-ms: 1000
+  client:
+    cookie-name: cid
+    cookie-max-age-days: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
