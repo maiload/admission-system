@@ -1,0 +1,6 @@
+rootProject.name = 'admission-system'
+
+include 'common'
+include 'queue-gate'
+include 'admission-worker'
+include 'ticketing-core'
