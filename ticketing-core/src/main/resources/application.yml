@@ -1,0 +1,38 @@
+server:
+  port: 8030
+
+spring:
+  application:
+    name: ticketing-core
+  r2dbc:
+    url: r2dbc:postgresql://postgres:5432/ticketing
+    username: ticketing
+    password: ticketing_pw
+  data:
+    redis:
+      cluster:
+        nodes: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379
+
+core:
+  session:
+    secret: core-secret-key
+    ttl-sec: 300
+    cookie-name: core_session
+  test:
+    load-ttl-sec: 30
+  enter-token:
+    secret: enter-secret-key
+  hold:
+    ttl-sec: 60
+    max-per-client: 4
+  scheduler:
+    hold-cleanup-interval-ms: 2000
+    active-cleanup-interval-ms: 5000
+  soldout:
+    ttl-sec: 86400
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
