@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ktx-blue: #003876;
+  --color-ktx-navy: #002855;
+  --color-ktx-red: #E63312;
+  --color-ktx-orange: #F27830;
+  --color-ktx-gray: #F5F5F5;
+  --color-ktx-dark: #1A1A2E;
+}
+
+body {
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
