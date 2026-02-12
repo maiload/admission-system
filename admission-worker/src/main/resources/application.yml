@@ -1,0 +1,29 @@
+server:
+  port: 8020
+
+spring:
+  application:
+    name: admission-worker
+  data:
+    redis:
+      cluster:
+        nodes: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379
+
+admission:
+  worker:
+    poll-interval-ms: 200
+    max-batch: 200
+    rate-cap: 200
+    concurrency-cap: 10000
+  token:
+    secret: enter-secret-key
+    ttl-sec: 30
+    rate-counter-ttl-sec: 3
+  queue:
+    state-ttl-sec: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
