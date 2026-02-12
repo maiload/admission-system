@@ -1,0 +1,119 @@
+services:
+  # --- queue-gate (x2) ---
+  queue-gate-1:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.gate
+    networks:
+      - data-net
+      - redis-cluster
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8010/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  queue-gate-2:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.gate
+    networks:
+      - data-net
+      - redis-cluster
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8010/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- admission-worker ---
+  admission-worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    networks:
+      - data-net
+      - redis-cluster
+
+  # --- ticketing-core (x2) ---
+  ticketing-core-1:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.core
+    networks:
+      - data-net
+      - redis-cluster
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8030/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ticketing-core-2:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.core
+    networks:
+      - data-net
+      - redis-cluster
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8030/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- Monitoring ---
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - data-net
+      - redis-cluster
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "4000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - data-net
+    depends_on:
+      - prometheus
+
+  # --- HAProxy ---
+  haproxy:
+    image: haproxy:2.9
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "8010:8010"
+      - "8030:8030"
+      - "9000:9000"
+    depends_on:
+      queue-gate-1:
+        condition: service_healthy
+      queue-gate-2:
+        condition: service_healthy
+      ticketing-core-1:
+        condition: service_healthy
+      ticketing-core-2:
+        condition: service_healthy
+    networks:
+      - data-net
+
+networks:
+  data-net:
+    external: true
+  redis-cluster:
+    external: true
