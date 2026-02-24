@@ -2,7 +2,9 @@
 
 **동시 접속 100만을 가정한 티켓팅 대기열 시스템**
 
-대기열(Queue) → 입장권(Admission) → 좌석 선점(Hold) → 확정(Confirm) 흐름을 구현하며, Redis Cluster + Lua 원자 처리로 **순서 공정성**, **이중 판매 방지**, **실시간 UX**를 보장합니다.
+단순히 요청을 쌓아두는 큐를 넘어, 폭발적인 트래픽 스파이크로부터 코어 시스템을 보호하고 사용자에게는 정교하게 계산된 순번을 제공하기 위해 설계된 시스템입니다. 대규모 예매나 이벤트 환경에서 발생할 수 있는 동시성 이슈와 병목 현상을 구조적으로 해결하는 데 집중했습니다.
+
+대기열(Queue) → 입장권(Admission) → 좌석 선점(Hold) → 확정(Confirm) 흐름을 구현하며, Redis Cluster + Lua 원자 처리로 **순서 공정성**, **좌석 중복 구매 방지**, **실시간 UX**를 보장합니다.
 
 ![UI/UX](docs/images/ui-ux.png)
 
@@ -26,15 +28,31 @@
 
 ## 기술 스택
 
-| 카테고리 | 기술 |
-|----------|------|
-| **Backend** | Java 21, Spring Boot 4.0, Spring WebFlux |
-| **Database** | PostgreSQL 16, Spring Data R2DBC |
-| **Cache / Queue** | Redis 7 Cluster (6 nodes), Lettuce, Redis Lua Scripting |
-| **Infra** | Docker Compose, HAProxy 2.9, Nginx |
-| **Frontend** | React, Vite, Tailwind CSS, Zustand, SSE (EventSource) |
-| **Observability** | Micrometer, Prometheus, Grafana |
-| **Test** | k6 (부하 테스트) |
+**Backend** </br>
+![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot_4.0-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring WebFlux](https://img.shields.io/badge/Spring_WebFlux-6DB33F?style=flat-square&logo=spring&logoColor=white)
+
+**Database** </br>
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![R2DBC](https://img.shields.io/badge/Spring_Data_R2DBC-6DB33F?style=flat-square&logo=spring&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis_7_Cluster-DC382D?style=flat-square&logo=redis&logoColor=white)
+
+**Infra** </br>
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+![HAProxy](https://img.shields.io/badge/HAProxy_2.9-003366?style=flat-square&logo=haproxy&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+
+**Frontend** </br>
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-443E38?style=flat-square&logo=react&logoColor=white)
+
+**Monitoring** </br>
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white)
+![k6](https://img.shields.io/badge/k6-7D64FF?style=flat-square&logo=k6&logoColor=white)
 
 ---
 
