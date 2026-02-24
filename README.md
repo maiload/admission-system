@@ -26,15 +26,31 @@
 
 ## 기술 스택
 
-| 카테고리 | 기술 |
-|----------|------|
-| **Backend** | Java 21, Spring Boot 4.0, Spring WebFlux |
-| **Database** | PostgreSQL 16, Spring Data R2DBC |
-| **Cache / Queue** | Redis 7 Cluster (6 nodes), Lettuce, Redis Lua Scripting |
-| **Infra** | Docker Compose, HAProxy 2.9, Nginx |
-| **Frontend** | React, Vite, Tailwind CSS, Zustand, SSE (EventSource) |
-| **Observability** | Micrometer, Prometheus, Grafana |
-| **Test** | k6 (부하 테스트) |
+**Backend** </br>
+![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot_4.0-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring WebFlux](https://img.shields.io/badge/Spring_WebFlux-6DB33F?style=flat-square&logo=spring&logoColor=white)
+
+**Database** </br>
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![R2DBC](https://img.shields.io/badge/Spring_Data_R2DBC-6DB33F?style=flat-square&logo=spring&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis_7_Cluster-DC382D?style=flat-square&logo=redis&logoColor=white)
+
+**Infra** </br>
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+![HAProxy](https://img.shields.io/badge/HAProxy_2.9-003366?style=flat-square&logo=haproxy&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+
+**Frontend** </br>
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-443E38?style=flat-square&logo=react&logoColor=white)
+
+**Monitoring** </br>
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white)
+![k6](https://img.shields.io/badge/k6-7D64FF?style=flat-square&logo=k6&logoColor=white)
 
 ---
 
